@@ -122,7 +122,7 @@ export default function Dashboard() {
       </div>
 
       {/* Desktop Layout (>= 768px) */}
-      <div className="hidden md:grid md:grid-cols-4 gap-4 lg:gap-6">
+      <div className="hidden md:grid grid-cols-4 gap-4 lg:gap-6">
         <SensorCard
           title="Heart Rate"
           bgColor="bg-gradient-to-r from-red-500 to-orange-500"
