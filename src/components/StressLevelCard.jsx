@@ -22,19 +22,19 @@ export default function StressLevelCard({ level = "sedang" }) {
       : "Stress Sedang";
 
   return (
-    <div className={`rounded-lg p-5 shadow-lg border ${tone}`}>
-      <div className="flex items-start gap-1">
+    <div className={`rounded-2xl p-4 sm:p-5 shadow-lg border ${tone}`}>
+      <div className="flex items-start gap-2 sm:gap-3">
         <img
-          src="/images/stress.svg" // Ganti dengan path file SVG yang sesuai
+          src="/images/stress.svg"
           alt="Stress Level Icon"
           width={50}
           height={50}
+          className="flex-shrink-0"
         />
-        <div className="w-full">
-          <h3 className="font-semibold">Tingkat Stress</h3>
-          <p className="text-xs text-zinc-600">Status</p>
-          <div className="m-3">
-            <p className="text-2xl font-extrabold">{label}</p>
+        <div className="w-full min-w-0">
+          <h3 className="font-semibold text-sm sm:text-base">Tingkat Stress</h3>
+          <div className="mt-6 sm:mt-8">
+            <p className="text-3xl sm:text-4xl font-extrabold">{label}</p>
           </div>
         </div>
       </div>

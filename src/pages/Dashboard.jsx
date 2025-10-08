@@ -44,24 +44,89 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          Status Anda Saat ini{" "}
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+          Status anda saat ini{" "}
           <span role="img" aria-label="meditasi">
             🧘
           </span>
         </h1>
       </div>
 
-      {/* 4 kartu sejajar dengan warna gradasi */}
-      <div className="flex flex-wrap gap-6">
-        {/* Heart Rate - Merah Jantung */}
+      {/* Mobile Layout (< 768px) */}
+      <div className="md:hidden flex flex-col gap-4">
+        {/* Stress Level Card - Full Width */}
+        <StressLevelCard
+          level={
+            levelText === "Normal"
+              ? "normal"
+              : levelText === "Stress Berat"
+              ? "berat"
+              : "sedang"
+          }
+        />
+
+        {/* GSR Card - Full Width */}
+        <SensorCard
+          title="Galvanic Skin Response"
+          bgColor="bg-gradient-to-r from-blue-400 to-green-300"
+          icon={
+            <img
+              src="/images/gsr.svg"
+              alt="Galvanic Skin Response"
+              width={60}
+              height={60}
+            />
+          }
+          value={sample.gsr.toFixed(3)}
+          unit="µS"
+          subtitle="MikroSiemens"
+        />
+
+        {/* Bottom Row - Heart Rate & Skin Temperature */}
+        <div className="grid grid-cols-2 gap-4">
+          <SensorCard
+            title="Heart Rate"
+            bgColor="bg-gradient-to-r from-red-500 to-orange-500"
+            icon={
+              <img
+                src="/images/hr.svg"
+                alt="Heart Rate"
+                width={60}
+                height={60}
+              />
+            }
+            value={sample.hr}
+            unit="BPM"
+            subtitle=""
+          />
+
+          <SensorCard
+            title="Skin Temperature"
+            bgColor="bg-gradient-to-r from-rose-400 to-amber-300"
+            icon={
+              <img
+                src="/images/temp.svg"
+                alt="Skin Temperature"
+                width={60}
+                height={60}
+              />
+            }
+            value={sample.temp}
+            unit="°C"
+            subtitle=""
+          />
+        </div>
+      </div>
+
+      {/* Desktop Layout (>= 768px) */}
+      <div className="hidden md:flex flex-wrap gap-6">
         <div className="flex-1 min-w-[240px] max-w-[290px]">
           <SensorCard
             title="Heart Rate"
-            bgColor="bg-gradient-to-r from-red-500 to-orange-500" // Merah ke Oranye
+            bgColor="bg-gradient-to-r from-red-500 to-orange-500"
             icon={
               <img
                 src="/images/hr.svg"
@@ -76,15 +141,14 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Skin Temperature - Warna Kulit / Suhu Cream */}
         <div className="flex-1 min-w-[240px] max-w-[290px]">
           <SensorCard
             title="Skin Temperature"
-            bgColor="bg-gradient-to-r from-rose-400 to-amber-300" // Warna Kulit / Suhu Cream
+            bgColor="bg-gradient-to-r from-rose-400 to-amber-300"
             icon={
               <img
                 src="/images/temp.svg"
-                alt="Skin Temperature "
+                alt="Skin Temperature"
                 width={80}
                 height={80}
               />
@@ -95,7 +159,6 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* GSR - Biru Keringat */}
         <div className="flex-1 min-w-[240px] max-w-[290px]">
           <SensorCard
             title="Galvanic Skin Response"
@@ -114,7 +177,6 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Stress Level */}
         <div className="flex-1 min-w-[240px] max-w-[290px]">
           <StressLevelCard
             level={
@@ -129,7 +191,9 @@ export default function Dashboard() {
       </div>
 
       {/* Tabel riwayat */}
-      <RecordsTable rows={rows} />
+      <div className="mt-8">
+        <RecordsTable rows={rows} />
+      </div>
     </div>
   );
 }
