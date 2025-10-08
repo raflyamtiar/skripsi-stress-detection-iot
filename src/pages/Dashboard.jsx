@@ -56,7 +56,7 @@ export default function Dashboard() {
       </div>
 
       {/* 4 kartu sejajar dengan warna gradasi */}
-      <div className="flex flex-wrap gap-6 md:flex-row flex-col b">
+      <div className="flex flex-wrap gap-6 md:flex-col flex-row">
         {/* Heart Rate - Merah Jantung */}
         <div className="flex-1 min-w-[240px] max-w-[290px]">
           <SensorCard
