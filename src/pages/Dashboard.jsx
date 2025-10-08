@@ -20,7 +20,7 @@ function classifyFallback({ hr, gsr, temp }) {
 
 export default function Dashboard() {
   const now = "25/08/25 19:12:12";
-  const sample = { hr: 85, temp: 33.5, gsr: 2.345, timestamp: now };
+  const sample = { hr: 95, temp: 33.5, gsr: 7.345, timestamp: now };
   const levelText = classifyFallback(sample);
 
   const rows = [
