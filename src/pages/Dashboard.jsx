@@ -81,8 +81,7 @@ export default function Dashboard() {
                 <img
                   src="/images/gsr.svg"
                   alt="Galvanic Skin Response"
-                  width={60}
-                  height={60}
+                  className="w-full h-full object-cover"
                 />
               }
               value={sample.gsr.toFixed(3)}
@@ -93,8 +92,8 @@ export default function Dashboard() {
           </div>
 
           {/* HR dan Temp */}
-          <div className="flex flex-row w-full gap-4 h-full bg-white">
-            <div className="flex justify-center items-center w-full h-full">
+          <div className="flex flex-row w-full gap-4 h-full">
+            <div className="flex justify-center items-center w-full min-h-full">
               <SensorCard
                 title="Heart Rate"
                 bgColor="bg-gradient-to-r from-red-500 to-orange-500"
@@ -102,8 +101,7 @@ export default function Dashboard() {
                   <img
                     src="/images/hr.svg"
                     alt="Heart Rate"
-                    width={80}
-                    height={80}
+                    className="w-full h-full object-cover"
                   />
                 }
                 value={sample.hr}
@@ -112,7 +110,7 @@ export default function Dashboard() {
               />
             </div>
 
-            <div className="flex justify-center items-center w-full">
+            <div className="flex justify-center items-center w-full h-full">
               <SensorCard
                 title="Skin Temperature"
                 bgColor="bg-gradient-to-r from-rose-400 to-amber-300"
@@ -120,8 +118,7 @@ export default function Dashboard() {
                   <img
                     src="/images/temp.svg"
                     alt="Skin Temperature "
-                    width={80}
-                    height={80}
+                    className="w-full h-full object-cover"
                   />
                 }
                 value={sample.temp}
