@@ -26,7 +26,7 @@ export default function StressLevelCard({ level = "sedang" }) {
       className={`p-6 flex w-full justify-center items-center rounded-lg shadow-lg border ${tone}`}
     >
       <div className="flex flex-col items-start gap-6 w-full">
-        {/* HEader Ttile */}
+        {/* Header Ttile */}
         <div className="flex gap-2 w-full">
           <img
             src="/images/stress.svg"
@@ -42,7 +42,7 @@ export default function StressLevelCard({ level = "sedang" }) {
         </div>
 
         {/* Status */}
-        <div className="flex w-full justify-center mb-4">
+        <div className="flex w-full justify-center">
           <p className="flex text-4xl font-extrabold">{label}</p>
         </div>
       </div>

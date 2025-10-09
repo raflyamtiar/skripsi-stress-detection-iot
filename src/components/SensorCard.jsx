@@ -8,11 +8,11 @@ export default function SensorCard({
   bgColor = "bg-gradient-to-r from-blue-500 to-blue-300",
 }) {
   return (
-    <div className={`rounded-lg ${bgColor} p-2 shadow-lg flex w-full justify-center items-center ${!isGSR && "min-h-[150px]"}`}>
+    <div className={`rounded-lg ${bgColor} p-2 shadow-lg flex w-full justify-center items-center ${!isGSR && "min-h-[150px] md:h-full"}`}>
       <div className="relative flex justify-center items-center w-full object-center obejct-cover gap-4">
         {isGSR && (
           <figure
-            className={"absolute left-3 flex scale-[1.2] flex items-center justify-center"}
+            className={"absolute left-3 flex scale-[1.2] items-center justify-center"}
           >
             {icon}
           </figure>
