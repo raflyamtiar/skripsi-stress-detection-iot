@@ -43,11 +43,43 @@ export default function RecordsTable({ rows = [] }) {
     URL.revokeObjectURL(url);
   }
 
-  // Buat daftar halaman
+  // Menentukan halaman yang akan ditampilkan
   const pageNumbers = [];
+  const pageRange = 2; // Menampilkan 2 halaman sebelumnya dan sesudahnya
+
   for (let i = 1; i <= totalPages; i++) {
-    pageNumbers.push(i);
+    if (
+      i === 1 || // Halaman pertama
+      i === totalPages || // Halaman terakhir
+      (i >= currentPage - pageRange && i <= currentPage + pageRange) // Halaman sekitar currentPage
+    ) {
+      pageNumbers.push(i);
+    }
   }
+
+  // Menambah titik jika diperlukan
+  const renderPageNumbers = pageNumbers.map((number, index) => {
+    if (index > 0 && number !== pageNumbers[index - 1] + 1) {
+      return (
+        <span key={`ellipsis-${index}`} className="px-4 py-2 text-sm">
+          ...
+        </span>
+      );
+    }
+    return (
+      <button
+        key={number}
+        className={`px-4 py-2 text-sm mx-1 ${
+          currentPage === number
+            ? "bg-blue-500 text-white"
+            : "bg-gray-300 text-sm"
+        }`}
+        onClick={() => handlePageChange(number)}
+      >
+        {number}
+      </button>
+    );
+  });
 
   return (
     <div className="mt-8 mx-auto max-w-7xl w-full">
@@ -124,19 +156,18 @@ export default function RecordsTable({ rows = [] }) {
         </button>
 
         {/* Daftar halaman */}
-        {pageNumbers.map((number) => (
+        {renderPageNumbers}
+
+        {/* Tombol untuk langsung ke halaman terakhir */}
+        {currentPage !== totalPages && (
           <button
-            key={number}
-            className={`px-4 py-2 text-sm mx-1 ${
-              currentPage === number
-                ? "bg-blue-500 text-white"
-                : "bg-gray-300 text-sm"
-            } rounded-md hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer`}
-            onClick={() => handlePageChange(number)} // Ke halaman yang dipilih
+            className="px-4 py-2 text-sm mx-1 bg-gray-300 text-sm"
+            onClick={() => handlePageChange(totalPages)} // Langsung ke halaman terakhir
+            disabled={currentPage === totalPages}
           >
-            {number}
+            {totalPages} {/* Nomor halaman terakhir */}
           </button>
-        ))}
+        )}
 
         {/* Next Button */}
         <button
