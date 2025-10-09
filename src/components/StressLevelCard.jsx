@@ -11,40 +11,46 @@ export default function StressLevelCard({ level = "sedang" }) {
     level === "normal"
       ? COLORS.normal
       : level === "berat"
-      ? COLORS.berat
-      : COLORS.sedang;
+        ? COLORS.berat
+        : COLORS.sedang;
 
   const label =
     level === "normal"
       ? "Normal"
       : level === "berat"
-      ? "Stress Berat"
-      : "Stress Sedang";
+        ? "Stress Berat"
+        : "Stress Sedang";
 
   return (
-    <div
-      className={`p-6 flex w-full justify-center items-center rounded-lg shadow-lg border ${tone}`}
-    >
-      <div className="flex flex-col items-start gap-6 w-full">
-        {/* Header Ttile */}
-        <div className="flex gap-2 w-full">
+    <div className={`flex flex-col ${tone} w-full p-4 rounded-lg`}>
+      {/* Header */}
+      <div className="flex gap-2 items-center">
+        {/* icon */}
+        <figure className="flex relative w-12 h-12">
           <img
             src="/images/stress.svg"
             alt="Stress Level Icon"
-            width={50}
-            height={50}
+            className="w-full h-full object-cover"
           />
+        </figure>
 
-          <div className="flex flex-col justify-between">
-            <h3 className="font-semibold text-2xl">Tingkat Stress</h3>
-            <p className="text-xs text-zinc-600">Status</p>
-          </div>
-        </div>
+        {/* Title and Subtitle */}
+        <div className="flex flex-col h-fit">
+          {/* title */}
+          <h2 className="flex text-xl font-bold">
+            Tingkat Stress
+          </h2>
+          {/* subtitle */}
+          <p className="flex text-sm font-semibold">
+            Status
+          </p>
 
-        {/* Status */}
-        <div className="flex w-full justify-center">
-          <p className="flex text-4xl font-extrabold">{label}</p>
         </div>
+      </div>
+
+      {/* Value */}
+      <div className="flex items-center justify-center flex-1 min-h-[80px] md:min-h-0">
+        <p className="flex text-4xl font-extrabold md:font-bold">{label}</p>
       </div>
     </div>
   );
