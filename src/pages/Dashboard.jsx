@@ -63,8 +63,8 @@ export default function Dashboard() {
               levelText === "Normal"
                 ? "normal"
                 : levelText === "Stress Berat"
-                ? "berat"
-                : "sedang"
+                  ? "berat"
+                  : "sedang"
             }
           />
         </div>

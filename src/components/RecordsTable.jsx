@@ -50,7 +50,7 @@ export default function RecordsTable({ rows = [] }) {
   }
 
   return (
-    <div className="mt-8 mx-auto max-w-7xl">
+    <div className="mt-8 mx-auto max-w-7xl w-full">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Tabel Sederhana</h2>
         <button
