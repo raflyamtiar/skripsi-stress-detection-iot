@@ -41,6 +41,13 @@ export default function Dashboard() {
     { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: levelText },
     { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: levelText },
     { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: levelText },
+    { timestamp: now, hr: 90, temp: 34.45, gsr: 12.234, level: levelText },
+    { timestamp: now, hr: 80, temp: 34.45, gsr: 12.234, level: levelText },
+    { timestamp: now, hr: 70, temp: 34.45, gsr: 12.234, level: levelText },
+    { timestamp: now, hr: 60, temp: 34.45, gsr: 12.234, level: levelText },
+    { timestamp: now, hr: 100, temp: 34.45, gsr: 12.234, level: levelText },
+    { timestamp: now, hr: 100, temp: 34.45, gsr: 12.234, level: levelText },
+    { timestamp: now, hr: 100, temp: 34.45, gsr: 12.234, level: levelText },
   ];
 
   return (
@@ -64,8 +71,8 @@ export default function Dashboard() {
               levelText === "Normal"
                 ? "normal"
                 : levelText === "Stress Berat"
-                  ? "berat"
-                  : "sedang"
+                ? "berat"
+                : "sedang"
             }
           />
         </div>
