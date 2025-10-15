@@ -1,13 +1,11 @@
 import { useState } from "react";
 
 export default function RecordsTable({ rows = [] }) {
-  // Paginasi
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
   const totalRows = rows.length;
   const totalPages = Math.ceil(totalRows / rowsPerPage);
 
-  // Mengambil data untuk halaman saat ini
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentRows = rows.slice(startIndex, startIndex + rowsPerPage);
 
@@ -43,21 +41,19 @@ export default function RecordsTable({ rows = [] }) {
     URL.revokeObjectURL(url);
   }
 
-  // Menentukan halaman yang akan ditampilkan
   const pageNumbers = [];
-  const pageRange = 2; // Menampilkan 2 halaman sebelumnya dan sesudahnya
+  const pageRange = 2;
 
   for (let i = 1; i <= totalPages; i++) {
     if (
-      i === 1 || // Halaman pertama
-      i === totalPages || // Halaman terakhir
-      (i >= currentPage - pageRange && i <= currentPage + pageRange) // Halaman sekitar currentPage
+      i === 1 ||
+      i === totalPages ||
+      (i >= currentPage - pageRange && i <= currentPage + pageRange)
     ) {
       pageNumbers.push(i);
     }
   }
 
-  // Menambah titik jika diperlukan
   const renderPageNumbers = pageNumbers.map((number, index) => {
     if (index > 0 && number !== pageNumbers[index - 1] + 1) {
       return (
@@ -138,51 +134,47 @@ export default function RecordsTable({ rows = [] }) {
         </table>
       </div>
 
-      {/* Paginasi */}
       <div className="flex justify-center mt-6">
         <button
           className="px-3 py-2 bg-gray-300 text-sm rounded-l-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-          onClick={() => handlePageChange(1)} // Ke halaman pertama
+          onClick={() => handlePageChange(1)}
           disabled={currentPage === 1}
         >
-          &laquo; {/* Tombol pertama */}
+          &laquo;
         </button>
         <button
           className="px-3 py-2 bg-gray-300 text-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-          onClick={() => handlePageChange(currentPage - 1)} // Halaman sebelumnya
+          onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
         >
           Prev
         </button>
 
-        {/* Daftar halaman */}
         {renderPageNumbers}
 
-        {/* Tombol untuk langsung ke halaman terakhir */}
         {currentPage !== totalPages && (
           <button
             className="px-4 py-2 text-sm mx-1 bg-gray-300 text-sm"
-            onClick={() => handlePageChange(totalPages)} // Langsung ke halaman terakhir
+            onClick={() => handlePageChange(totalPages)}
             disabled={currentPage === totalPages}
           >
-            {totalPages} {/* Nomor halaman terakhir */}
+            {totalPages}
           </button>
         )}
 
-        {/* Next Button */}
         <button
           className="px-3 py-2 bg-gray-300 text-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-          onClick={() => handlePageChange(currentPage + 1)} // Halaman berikutnya
+          onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
         >
           Next
         </button>
         <button
           className="px-3 py-2 bg-gray-300 text-sm rounded-r-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-          onClick={() => handlePageChange(totalPages)} // Ke halaman terakhir
+          onClick={() => handlePageChange(totalPages)}
           disabled={currentPage === totalPages}
         >
-          &raquo; {/* Tombol terakhir */}
+          &raquo;
         </button>
       </div>
     </div>
