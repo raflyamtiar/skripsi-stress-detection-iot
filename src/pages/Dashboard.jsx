@@ -4,6 +4,7 @@ import StressLevelCard from "../components/StressLevelCard";
 import RecordsTable from "../components/RecordsTable";
 import StressWarningModal from "../components/StressWarningModal";
 import MusicPlayer from "../components/MusicPlayer";
+import sensorData from "../constant/sensorData";
 
 function classifyFallback({ hr, gsr, temp }) {
   if (hr >= 60 && hr <= 90 && gsr < 5 && temp >= 33.5 && temp <= 36.9)
@@ -49,230 +50,9 @@ export default function Dashboard() {
     setShowMusicPlayer(false);
   };
 
-  const rows = [
-    {
-      timestamp: now,
-      hr: 90,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 80,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    { timestamp: now, hr: 70, temp: 34.45, gsr: 12.234, level: "Normal" },
-    { timestamp: now, hr: 60, temp: 34.45, gsr: 12.234, level: "Normal" },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    {
-      timestamp: now,
-      hr: 90,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 80,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    { timestamp: now, hr: 70, temp: 34.45, gsr: 12.234, level: "Normal" },
-    { timestamp: now, hr: 60, temp: 34.45, gsr: 12.234, level: "Normal" },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 90,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 80,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    { timestamp: now, hr: 70, temp: 34.45, gsr: 12.234, level: "Normal" },
-    { timestamp: now, hr: 60, temp: 34.45, gsr: 12.234, level: "Normal" },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    { timestamp: now, hr: 80, temp: 34.45, gsr: 2.234, level: "Normal" },
-    {
-      timestamp: now,
-      hr: 90,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 80,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    { timestamp: now, hr: 70, temp: 34.45, gsr: 12.234, level: "Normal" },
-    { timestamp: now, hr: 60, temp: 34.45, gsr: 12.234, level: "Normal" },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 100,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 90,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-    {
-      timestamp: now,
-      hr: 80,
-      temp: 34.45,
-      gsr: 12.234,
-      level: "Stress Sedang",
-    },
-  ];
-
   return (
     <>
-      <div className="flex flex-col px-4 py-8 md:px-8">
+      <div className="flex flex-col px-4 pt-8 pb-6 md:px-8">
         <div className="flex mb-6 justify-start self-start">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             Status Anda Saat ini{" "}
@@ -289,8 +69,8 @@ export default function Dashboard() {
                 levelText === "Normal"
                   ? "normal"
                   : levelText === "Stress Berat"
-                  ? "berat"
-                  : "sedang"
+                    ? "berat"
+                    : "sedang"
               }
             />
           </div>
@@ -353,7 +133,7 @@ export default function Dashboard() {
         </div>
 
         <div className="flex w-full">
-          <RecordsTable rows={rows} />
+          <RecordsTable rows={sensorData} />
         </div>
       </div>
 
