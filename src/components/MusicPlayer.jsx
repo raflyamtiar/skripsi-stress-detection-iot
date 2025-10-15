@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { FaSpotify } from "react-icons/fa";
 import { Play, Pause, SkipBack, SkipForward, Volume2, X } from "lucide-react";
 import H5AudioPlayer from "react-h5-audio-player";
 import "react-h5-audio-player/lib/styles.css";
@@ -9,7 +10,12 @@ export default function MusicPlayer({ isOpen, onClose }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(80);
+  const [volume, setVolume] = useState(() => {
+    if (typeof window === "undefined") return 100;
+    const v = Number(localStorage.getItem("player_volume"));
+    return Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : 80;
+  });
+
   const playerRef = useRef(null);
   const shouldAutoplayNext = useRef(false);
 
@@ -86,6 +92,13 @@ export default function MusicPlayer({ isOpen, onClose }) {
     const audio = playerRef.current?.audio?.current;
     if (audio) audio.volume = val / 100;
   };
+
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("player_volume", String(volume));
+    }
+  }, [volume]);
 
   const updateDuration = () => {
     const audio = playerRef.current?.audio?.current;
@@ -215,6 +228,8 @@ export default function MusicPlayer({ isOpen, onClose }) {
                   style={{ accentColor: "#22c55e" }}
                 />
               </div>
+
+
             </div>
           </div>
 
@@ -229,8 +244,8 @@ export default function MusicPlayer({ isOpen, onClose }) {
                     setSelectedTrack(track);
                   }}
                   className={`flex items-center gap-4 p-4 rounded-lg cursor-pointer transition-all ${selectedTrack.id === track.id
-                      ? "bg-green-500 bg-opacity-20 border border-green-500"
-                      : "bg-gray-800 hover:bg-gray-700"
+                    ? "bg-green-500 bg-opacity-20 border border-green-500"
+                    : "bg-gray-800 hover:bg-gray-700"
                     }`}
                 >
                   <img
@@ -248,6 +263,21 @@ export default function MusicPlayer({ isOpen, onClose }) {
                 </div>
               ))}
             </div>
+
+            <a
+              href="https://open.spotify.com/playlist/571CFYqm7byUBkBep5LQZR"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex w-fit items-center gap-4 rounded-xl border border-green-500/30 bg-green-500/20 px-5 py-3 text-white shadow-lg backdrop-blur-sm transition-all hover:bg-green-500/30 hover:shadow-green-500/20 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-400/50 mt-5"
+            >
+              <span className="flex max-w-[160px] flex-col leading-tight">
+                <span className="font-bold">Untuk selengkapnya</span>
+                <span className="text-xs text-gray-300">reset mood, yuk.</span>
+              </span>
+              <span className="grid place-items-center rounded-lg bg-gradient-to-br from-green-500 to-green-600 p-2 shadow-md transition-transform group-hover:translate-x-0.5">
+                <FaSpotify size={22} className="drop-shadow-sm" />
+              </span>
+            </a>
           </div>
         </div>
       </div>
