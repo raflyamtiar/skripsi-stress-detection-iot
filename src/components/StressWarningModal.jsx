@@ -4,7 +4,7 @@ export default function StressWarningModal({ isOpen, onClose, onListenMusic }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 bg-opacity-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-in">
         <div className="bg-gradient-to-r from-red-500 to-red-400 p-6 text-white">
           <div className="flex items-center gap-3">
