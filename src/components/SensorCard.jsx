@@ -26,7 +26,7 @@ export default function SensorCard({
       )}
 
       <div className="flex gap-5 items-center">
-        <figure className="relative w-12 h-12 hidden md:flex">{icon}</figure>
+        <figure className="relative w-15 h-12 hidden md:flex">{icon}</figure>
 
         <div
           className={`flex flex-col items-center md:items-center w-full justify-center ${

@@ -93,7 +93,6 @@ export default function MusicPlayer({ isOpen, onClose }) {
     if (audio) audio.volume = val / 100;
   };
 
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("player_volume", String(volume));
@@ -228,8 +227,6 @@ export default function MusicPlayer({ isOpen, onClose }) {
                   style={{ accentColor: "#22c55e" }}
                 />
               </div>
-
-
             </div>
           </div>
 
@@ -243,10 +240,11 @@ export default function MusicPlayer({ isOpen, onClose }) {
                     shouldAutoplayNext.current = isPlaying;
                     setSelectedTrack(track);
                   }}
-                  className={`flex items-center gap-4 p-4 rounded-lg cursor-pointer transition-all ${selectedTrack.id === track.id
-                    ? "bg-green-500 bg-opacity-20 border border-green-500"
-                    : "bg-gray-800 hover:bg-gray-700"
-                    }`}
+                  className={`flex items-center gap-4 p-4 rounded-lg cursor-pointer transition-all ${
+                    selectedTrack.id === track.id
+                      ? "bg-green-500 bg-opacity-20 border border-green-500"
+                      : "bg-gray-800 hover:bg-gray-700"
+                  }`}
                 >
                   <img
                     src={track.cover}
@@ -265,7 +263,7 @@ export default function MusicPlayer({ isOpen, onClose }) {
             </div>
 
             <a
-              href="https://open.spotify.com/playlist/571CFYqm7byUBkBep5LQZR"
+              href="https://open.spotify.com"
               target="_blank"
               rel="noopener noreferrer"
               className="group inline-flex w-fit items-center gap-4 rounded-xl border border-green-500/30 bg-green-500/20 px-5 py-3 text-white shadow-lg backdrop-blur-sm transition-all hover:bg-green-500/30 hover:shadow-green-500/20 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-400/50 mt-5"
