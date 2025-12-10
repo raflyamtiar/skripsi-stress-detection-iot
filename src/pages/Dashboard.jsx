@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import io from "socket.io-client";
 import SensorCard from "../components/SensorCard";
 import StressLevelCard from "../components/StressLevelCard";
@@ -22,6 +23,11 @@ function classifyFallback({ hr, gsr, temp }) {
 }
 
 export default function Dashboard() {
+  // Measurement state: 'idle' | 'measuring' | 'done'
+  const [measurementState, setMeasurementState] = useState("idle");
+  const [countdown, setCountdown] = useState(60);
+  const [measurementData, setMeasurementData] = useState([]);
+
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [hasShownWarning, setHasShownWarning] = useState(false);
@@ -36,6 +42,7 @@ export default function Dashboard() {
   });
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
 
   const levelText = classifyFallback(currentSensorData);
 
@@ -145,6 +152,68 @@ export default function Dashboard() {
     };
   }, []);
 
+  // Countdown and measurement logic
+  useEffect(() => {
+    if (measurementState === "measuring") {
+      // Start countdown from 60
+      setCountdown(60);
+
+      countdownIntervalRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          const newCount = prev - 1;
+
+          // Save current sensor data to localStorage every second
+          const measurementEntry = {
+            second: 61 - prev, // Second 1 to 60
+            hr: currentSensorData.hr,
+            temp: currentSensorData.temp,
+            gsr: currentSensorData.gsr,
+            timestamp: new Date().toISOString(),
+          };
+
+          // Get existing data from localStorage
+          const existingData = JSON.parse(
+            localStorage.getItem("measurementData") || "[]"
+          );
+          existingData.push(measurementEntry);
+          localStorage.setItem("measurementData", JSON.stringify(existingData));
+
+          setMeasurementData(existingData);
+
+          // When countdown reaches 0, move to done state
+          if (newCount <= 0) {
+            clearInterval(countdownIntervalRef.current);
+            setMeasurementState("done");
+            return 0;
+          }
+
+          return newCount;
+        });
+      }, 1000);
+
+      return () => {
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current);
+        }
+      };
+    }
+  }, [measurementState, currentSensorData]);
+
+  // Start measurement handler
+  const handleStartMeasurement = () => {
+    // Clear previous measurement data
+    localStorage.removeItem("measurementData");
+    setMeasurementData([]);
+    setMeasurementState("measuring");
+  };
+
+  // Reset to idle state
+  const handleResetMeasurement = () => {
+    setMeasurementState("idle");
+    setCountdown(60);
+    setHasShownWarning(false);
+  };
+
   useEffect(() => {
     if (levelText === "Stress Berat" && !hasShownWarning) {
       setShowWarningModal(true);
@@ -167,7 +236,8 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="flex flex-col px-4 pt-8 pb-6 md:px-8">
+      <div className="flex flex-col px-4 pt-8 pb-6 md:px-8 min-h-screen">
+        {/* Header */}
         <div className="flex mb-6 justify-between items-center">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             Status Anda Saat ini{" "}
@@ -186,78 +256,301 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
-        <div className="flex flex-col md:flex-row-reverse gap-4 mb-4 md:p-0">
-          <div className="flex w-full md:max-w-[300px]">
-            <StressLevelCard
-              level={
-                levelText === "Normal"
-                  ? "normal"
-                  : levelText === "Stress Berat"
-                  ? "berat"
-                  : "sedang"
-              }
-            />
-          </div>
 
-          <div className="flex flex-1 gap-4 flex-col md:flex-row-reverse">
-            <div className="flex w-full md:max-w-[300px]">
-              <SensorCard
-                title="Galvanic Skin Response"
-                bgColor="bg-gradient-to-r from-blue-400 to-green-300"
-                icon={
-                  <img
-                    src="/images/gsr.svg"
-                    alt="Galvanic Skin Response"
-                    className="w-full h-full object-cover"
+        {/* IDLE STATE - Show Start Button */}
+        <AnimatePresence mode="wait">
+          {measurementState === "idle" && (
+            <motion.div
+              key="idle"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center justify-center flex-1 min-h-[500px]"
+            >
+              <motion.button
+                onClick={handleStartMeasurement}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative group"
+              >
+                {/* Outer glow ring */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-xl opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
+
+                {/* Main circular button */}
+                <div className="relative w-64 h-64 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full flex flex-col items-center justify-center shadow-2xl transform transition-transform">
+                  <div className="absolute inset-2 bg-white rounded-full flex flex-col items-center justify-center">
+                    <div className="text-6xl mb-2">🧘‍♀️</div>
+                    <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      Mulai Mengukur
+                    </div>
+                    <div className="text-sm text-gray-500 mt-2">
+                      Tap untuk memulai
+                    </div>
+                  </div>
+                </div>
+              </motion.button>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mt-8 text-gray-600 text-center max-w-md"
+              >
+                Pastikan sensor sudah terpasang dengan baik sebelum memulai
+                pengukuran
+              </motion.p>
+            </motion.div>
+          )}
+
+          {/* MEASURING STATE - Show 3 Cards + Countdown */}
+          {measurementState === "measuring" && (
+            <motion.div
+              key="measuring"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="flex flex-col items-center"
+            >
+              {/* Countdown and Status */}
+              <div className="mb-8 text-center">
+                <motion.div
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4"
+                >
+                  {countdown}
+                </motion.div>
+                <div className="text-xl text-gray-700 font-semibold mb-2">
+                  Sedang mengukur, harap tunggu...
+                </div>
+                <div className="flex items-center justify-center gap-2 text-gray-500">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                  >
+                    ⚡
+                  </motion.div>
+                  <span>Pengukuran berlangsung {60 - countdown} detik</span>
+                </div>
+              </div>
+
+              {/* 3 Sensor Cards without values */}
+              <div className="flex flex-col md:flex-row gap-6 w-full max-w-4xl">
+                <motion.div
+                  initial={{ opacity: 0, x: -50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="flex-1"
+                >
+                  <div className="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-6 text-white shadow-lg h-full">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12">
+                        <img
+                          src="/images/hr.svg"
+                          alt="Heart Rate"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">Heart Rate</h3>
+                        <p className="text-sm opacity-90">Beat per Minute</p>
+                      </div>
+                    </div>
+                    <div className="text-5xl font-bold animate-pulse">---</div>
+                    <div className="text-sm mt-2 opacity-75">Mengukur...</div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: -50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex-1"
+                >
+                  <div className="bg-gradient-to-r from-rose-400 to-amber-300 rounded-2xl p-6 text-white shadow-lg h-full">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12">
+                        <img
+                          src="/images/temp.svg"
+                          alt="Skin Temperature"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">Skin Temperature</h3>
+                        <p className="text-sm opacity-90">Celcius</p>
+                      </div>
+                    </div>
+                    <div className="text-5xl font-bold animate-pulse">---</div>
+                    <div className="text-sm mt-2 opacity-75">Mengukur...</div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: -50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex-1"
+                >
+                  <div className="bg-gradient-to-r from-blue-400 to-green-300 rounded-2xl p-6 text-white shadow-lg h-full">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12">
+                        <img
+                          src="/images/gsr.svg"
+                          alt="Galvanic Skin Response"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">GSR</h3>
+                        <p className="text-sm opacity-90">MikroSiemens</p>
+                      </div>
+                    </div>
+                    <div className="text-5xl font-bold animate-pulse">---</div>
+                    <div className="text-sm mt-2 opacity-75">Mengukur...</div>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* DONE STATE - Show All 4 Cards */}
+          {measurementState === "done" && (
+            <motion.div
+              key="done"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* Success Message */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                className="mb-6 text-center"
+              >
+                <div className="text-4xl mb-2">✅</div>
+                <div className="text-2xl font-bold text-green-600 mb-2">
+                  Pengukuran Selesai!
+                </div>
+                <div className="text-gray-600 mb-4">
+                  Data berhasil disimpan ({measurementData.length} data point)
+                </div>
+                <button
+                  onClick={handleResetMeasurement}
+                  className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-semibold transition-colors"
+                >
+                  Ukur Lagi
+                </button>
+              </motion.div>
+
+              <div className="flex flex-col md:flex-row-reverse gap-4 mb-4 md:p-0">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex w-full md:max-w-[300px]"
+                >
+                  <StressLevelCard
+                    level={
+                      levelText === "Normal"
+                        ? "normal"
+                        : levelText === "Stress Berat"
+                        ? "berat"
+                        : "sedang"
+                    }
                   />
-                }
-                value={currentSensorData.gsr.toFixed(3)}
-                isGSR={true}
-                unit="µS"
-                subtitle="MikroSiemens"
-              />
-            </div>
+                </motion.div>
 
-            <div className="flex flex-row w-full gap-4 h-full">
-              <div className="flex justify-center items-center w-full min-h-full">
-                <SensorCard
-                  title="Heart Rate"
-                  bgColor="bg-gradient-to-r from-red-500 to-orange-500"
-                  icon={
-                    <img
-                      src="/images/hr.svg"
-                      alt="Heart Rate"
-                      className="w-full h-full object-cover"
+                <div className="flex flex-1 gap-4 flex-col md:flex-row-reverse">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex w-full md:max-w-[300px]"
+                  >
+                    <SensorCard
+                      title="Galvanic Skin Response"
+                      bgColor="bg-gradient-to-r from-blue-400 to-green-300"
+                      icon={
+                        <img
+                          src="/images/gsr.svg"
+                          alt="Galvanic Skin Response"
+                          className="w-full h-full object-cover"
+                        />
+                      }
+                      value={currentSensorData.gsr.toFixed(3)}
+                      isGSR={true}
+                      unit="µS"
+                      subtitle="MikroSiemens"
                     />
-                  }
-                  value={currentSensorData.hr}
-                  unit="BPM"
-                  subtitle="Beat per Minute"
-                />
+                  </motion.div>
+
+                  <div className="flex flex-row w-full gap-4 h-full">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="flex justify-center items-center w-full min-h-full"
+                    >
+                      <SensorCard
+                        title="Heart Rate"
+                        bgColor="bg-gradient-to-r from-red-500 to-orange-500"
+                        icon={
+                          <img
+                            src="/images/hr.svg"
+                            alt="Heart Rate"
+                            className="w-full h-full object-cover"
+                          />
+                        }
+                        value={currentSensorData.hr}
+                        unit="BPM"
+                        subtitle="Beat per Minute"
+                      />
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="flex justify-center items-center w-full h-full"
+                    >
+                      <SensorCard
+                        title="Skin Temperature"
+                        bgColor="bg-gradient-to-r from-rose-400 to-amber-300"
+                        icon={
+                          <img
+                            src="/images/temp.svg"
+                            alt="Skin Temperature "
+                            className="w-full h-full object-cover"
+                          />
+                        }
+                        value={currentSensorData.temp}
+                        unit="°C"
+                        subtitle="Celcius"
+                      />
+                    </motion.div>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-center items-center w-full h-full">
-                <SensorCard
-                  title="Skin Temperature"
-                  bgColor="bg-gradient-to-r from-rose-400 to-amber-300"
-                  icon={
-                    <img
-                      src="/images/temp.svg"
-                      alt="Skin Temperature "
-                      className="w-full h-full object-cover"
-                    />
-                  }
-                  value={currentSensorData.temp}
-                  unit="°C"
-                  subtitle="Celcius"
-                />
-              </div>
-            </div>
-          </div>
-        </div>{" "}
-        <div className="flex w-full">
-          <RecordsTable rows={sensorData} />
-        </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="flex w-full"
+              >
+                <RecordsTable rows={sensorData} />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <StressWarningModal
