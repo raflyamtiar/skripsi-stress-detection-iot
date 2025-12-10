@@ -305,14 +305,21 @@ export default function Dashboard() {
     setMeasurementState("idle");
     setCountdown(60);
     setHasShownWarning(false);
+    setCurrentAverage(null);
   };
 
+  // Show modal ONLY when done state AND stress berat
   useEffect(() => {
-    if (levelText === "Stress Berat" && !hasShownWarning) {
+    if (
+      measurementState === "done" &&
+      currentAverage &&
+      currentAverage.level === "Stress Berat" &&
+      !hasShownWarning
+    ) {
       setShowWarningModal(true);
       setHasShownWarning(true);
     }
-  }, [levelText, hasShownWarning]);
+  }, [measurementState, currentAverage, hasShownWarning]);
 
   const handleListenMusic = () => {
     setShowWarningModal(false);
