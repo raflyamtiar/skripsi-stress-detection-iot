@@ -13,4 +13,80 @@ Sistem ini mengintegrasikan **Internet of Things (IoT)** untuk pengambilan data 
 - **Sensor GSR** untuk mengukur respons kulit (Galvanic Skin Response).
 - **Algoritma Random Forest** untuk klasifikasi tingkat stres.
 - **IoT Real-Time Monitoring** untuk pengumpulan data fisiologis secara langsung.
+- **WebSocket Real-Time Connection** untuk pemantauan data sensor secara live.
 - **Deteksi Stres** yang dapat mengklasifikasikan kondisi stres menjadi **Normal**, **Sedang**, atau **Berat**.
+
+## Setup & Installation
+
+### 1. Clone Repository
+
+```bash
+git clone <repository-url>
+cd stress-detection-iot
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Konfigurasi Environment
+
+Copy file `.env.example` menjadi `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Edit file `.env` dan sesuaikan URL WebSocket:
+
+```env
+# Untuk development lokal
+VITE_WEBSOCKET_URL=ws://127.0.0.1:5000
+
+# Untuk production dengan ngrok
+# VITE_WEBSOCKET_URL=ws://your-ngrok-url.ngrok-free.dev
+```
+
+### 4. Jalankan Aplikasi
+
+```bash
+npm run dev
+```
+
+## WebSocket Configuration
+
+Aplikasi ini menggunakan Socket.IO untuk komunikasi real-time dengan backend sensor.
+
+### WebSocket Endpoint
+
+- **Local Development**: `ws://127.0.0.1:5000/socket.io/?EIO=4&transport=websocket&type=frontend`
+- **Production (Ngrok)**: `ws://your-ngrok-url.ngrok-free.dev/socket.io/?EIO=4&transport=websocket&type=frontend`
+
+### Format Data Sensor
+
+Backend harus mengirim data dengan format berikut melalui event `sensor_data`:
+
+```javascript
+{
+  hr: 85,              // Heart Rate (BPM)
+  temp: 34.5,          // Temperature (°C)
+  gsr: 12.345,         // Galvanic Skin Response (µS)
+}
+```
+
+### Event Listeners
+
+- `connect`: Dipanggil saat koneksi berhasil
+- `disconnect`: Dipanggil saat koneksi terputus
+- `connect_error`: Dipanggil saat ada error koneksi
+- `reconnect`: Dipanggil saat berhasil reconnect
+- `sensor_data`: Menerima data sensor real-time
+
+### Status Koneksi
+
+Aplikasi menampilkan indikator status koneksi di header dashboard:
+
+- 🟢 **Connected**: WebSocket terhubung
+- 🔴 **Disconnected**: WebSocket terputus
