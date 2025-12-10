@@ -27,6 +27,8 @@ export default function Dashboard() {
   const [measurementState, setMeasurementState] = useState("idle");
   const [countdown, setCountdown] = useState(60);
   const [measurementData, setMeasurementData] = useState([]);
+  const [averageHistory, setAverageHistory] = useState([]); // History of averages
+  const [currentAverage, setCurrentAverage] = useState(null); // Rata-rata sesi saat ini
 
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -38,13 +40,27 @@ export default function Dashboard() {
     hr: 0,
     temp: 0,
     gsr: 0,
-    timestamp: new Date().toLocaleString("id-ID"),
+    timestamp: new Date().toLocaleString("id-ID", {
+      timeZone: "Asia/Jakarta",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }),
   });
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef(null);
   const countdownIntervalRef = useRef(null);
+  const currentSensorDataRef = useRef(currentSensorData); // Ref untuk akses real-time data
 
   const levelText = classifyFallback(currentSensorData);
+
+  // Update ref setiap kali currentSensorData berubah
+  useEffect(() => {
+    currentSensorDataRef.current = currentSensorData;
+  }, [currentSensorData]);
 
   // WebSocket connection setup
   useEffect(() => {
@@ -103,9 +119,10 @@ export default function Dashboard() {
       console.log(`📊 Received data from [${eventName}]:`, data);
 
       const timestamp = new Date().toLocaleString("id-ID", {
+        timeZone: "Asia/Jakarta",
         day: "2-digit",
         month: "2-digit",
-        year: "2-digit",
+        year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
@@ -163,12 +180,25 @@ export default function Dashboard() {
           const newCount = prev - 1;
 
           // Save current sensor data to localStorage every second
+          // Use ref to get latest data without causing re-render loop
+          const now = new Date();
+          const timestamp = now.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+
+          const currentSecond = 61 - prev; // Second 1 to 60
           const measurementEntry = {
-            second: 61 - prev, // Second 1 to 60
-            hr: currentSensorData.hr,
-            temp: currentSensorData.temp,
-            gsr: currentSensorData.gsr,
-            timestamp: new Date().toISOString(),
+            second: currentSecond,
+            hr: currentSensorDataRef.current.hr,
+            temp: currentSensorDataRef.current.temp,
+            gsr: currentSensorDataRef.current.gsr,
+            timestamp: timestamp,
           };
 
           // Get existing data from localStorage
@@ -176,13 +206,73 @@ export default function Dashboard() {
             localStorage.getItem("measurementData") || "[]"
           );
           existingData.push(measurementEntry);
+
+          // Simpan data lengkap (detik 1-60)
           localStorage.setItem("measurementData", JSON.stringify(existingData));
+
+          // Update last10Seconds saat detik 51-60 (real-time update setiap detik)
+          if (currentSecond >= 51 && currentSecond <= 60) {
+            // Ambil 10 data terakhir (detik 51-60)
+            const last10 = existingData.slice(-10);
+            // Replace last10Seconds (bukan append)
+            localStorage.setItem("last10Seconds", JSON.stringify(last10));
+          }
 
           setMeasurementData(existingData);
 
           // When countdown reaches 0, move to done state
           if (newCount <= 0) {
             clearInterval(countdownIntervalRef.current);
+
+            // HANYA saat countdown = 0, hitung rata-rata dari last10Seconds
+            const last10Data = JSON.parse(
+              localStorage.getItem("last10Seconds") || "[]"
+            );
+
+            if (last10Data.length > 0) {
+              // Hitung rata-rata dari 10 detik terakhir
+              const avgHr =
+                last10Data.reduce((sum, d) => sum + d.hr, 0) /
+                last10Data.length;
+              const avgTemp =
+                last10Data.reduce((sum, d) => sum + d.temp, 0) /
+                last10Data.length;
+              const avgGsr =
+                last10Data.reduce((sum, d) => sum + d.gsr, 0) /
+                last10Data.length;
+
+              // Classify stress level berdasarkan rata-rata
+              const avgStressLevel = classifyFallback({
+                hr: avgHr,
+                temp: avgTemp,
+                gsr: avgGsr,
+              });
+
+              const averageData = {
+                hr: parseFloat(avgHr.toFixed(2)),
+                temp: parseFloat(avgTemp.toFixed(2)),
+                gsr: parseFloat(avgGsr.toFixed(3)),
+                level: avgStressLevel,
+                period: "Detik 51-60",
+                timestamp: timestamp,
+              };
+
+              // Append to last10SecondsAverage (push, bukan replace)
+              const existingAverages = JSON.parse(
+                localStorage.getItem("last10SecondsAverage") || "[]"
+              );
+              existingAverages.push(averageData);
+              localStorage.setItem(
+                "last10SecondsAverage",
+                JSON.stringify(existingAverages)
+              );
+
+              // Simpan rata-rata untuk ditampilkan di cards
+              setCurrentAverage(averageData);
+              // Update state history untuk tabel
+              setAverageHistory(existingAverages);
+            }
+
             setMeasurementState("done");
             return 0;
           }
@@ -197,13 +287,16 @@ export default function Dashboard() {
         }
       };
     }
-  }, [measurementState, currentSensorData]);
+  }, [measurementState]); // Hanya trigger saat measurementState berubah, bukan currentSensorData
 
   // Start measurement handler
   const handleStartMeasurement = () => {
-    // Clear previous measurement data
+    // Clear previous measurement data - all keys
     localStorage.removeItem("measurementData");
+    localStorage.removeItem("last10Seconds");
+    localStorage.removeItem("last10SecondsAverage");
     setMeasurementData([]);
+    setAverageHistory([]);
     setMeasurementState("measuring");
   };
 
@@ -340,7 +433,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* 3 Sensor Cards without values */}
+              {/* 3 Sensor Cards with real-time values */}
               <div className="flex flex-col md:flex-row gap-6 w-full max-w-4xl">
                 <motion.div
                   initial={{ opacity: 0, x: -50 }}
@@ -362,8 +455,15 @@ export default function Dashboard() {
                         <p className="text-sm opacity-90">Beat per Minute</p>
                       </div>
                     </div>
-                    <div className="text-5xl font-bold animate-pulse">---</div>
-                    <div className="text-sm mt-2 opacity-75">Mengukur...</div>
+                    <motion.div
+                      key={currentSensorData.hr}
+                      initial={{ scale: 1.1 }}
+                      animate={{ scale: 1 }}
+                      className="text-5xl font-bold"
+                    >
+                      {currentSensorData.hr || 0}
+                    </motion.div>
+                    <div className="text-sm mt-2 opacity-75">BPM</div>
                   </div>
                 </motion.div>
 
@@ -387,8 +487,15 @@ export default function Dashboard() {
                         <p className="text-sm opacity-90">Celcius</p>
                       </div>
                     </div>
-                    <div className="text-5xl font-bold animate-pulse">---</div>
-                    <div className="text-sm mt-2 opacity-75">Mengukur...</div>
+                    <motion.div
+                      key={currentSensorData.temp}
+                      initial={{ scale: 1.1 }}
+                      animate={{ scale: 1 }}
+                      className="text-5xl font-bold"
+                    >
+                      {currentSensorData.temp?.toFixed(1) || "0.0"}
+                    </motion.div>
+                    <div className="text-sm mt-2 opacity-75">°C</div>
                   </div>
                 </motion.div>
 
@@ -412,8 +519,15 @@ export default function Dashboard() {
                         <p className="text-sm opacity-90">MikroSiemens</p>
                       </div>
                     </div>
-                    <div className="text-5xl font-bold animate-pulse">---</div>
-                    <div className="text-sm mt-2 opacity-75">Mengukur...</div>
+                    <motion.div
+                      key={currentSensorData.gsr}
+                      initial={{ scale: 1.1 }}
+                      animate={{ scale: 1 }}
+                      className="text-5xl font-bold"
+                    >
+                      {currentSensorData.gsr?.toFixed(3) || "0.000"}
+                    </motion.div>
+                    <div className="text-sm mt-2 opacity-75">µS</div>
                   </div>
                 </motion.div>
               </div>
@@ -440,7 +554,8 @@ export default function Dashboard() {
                   Pengukuran Selesai!
                 </div>
                 <div className="text-gray-600 mb-4">
-                  Data berhasil disimpan ({measurementData.length} data point)
+                  Data rata-rata tersimpan ({averageHistory.length} rata-rata
+                  dari 10 detik terakhir)
                 </div>
                 <button
                   onClick={handleResetMeasurement}
@@ -459,11 +574,13 @@ export default function Dashboard() {
                 >
                   <StressLevelCard
                     level={
-                      levelText === "Normal"
-                        ? "normal"
-                        : levelText === "Stress Berat"
-                        ? "berat"
-                        : "sedang"
+                      currentAverage
+                        ? currentAverage.level === "Normal"
+                          ? "normal"
+                          : currentAverage.level === "Stress Berat"
+                          ? "berat"
+                          : "sedang"
+                        : "normal"
                     }
                   />
                 </motion.div>
@@ -485,7 +602,9 @@ export default function Dashboard() {
                           className="w-full h-full object-cover"
                         />
                       }
-                      value={currentSensorData.gsr.toFixed(3)}
+                      value={
+                        currentAverage ? currentAverage.gsr.toFixed(3) : "0.000"
+                      }
                       isGSR={true}
                       unit="µS"
                       subtitle="MikroSiemens"
@@ -509,7 +628,7 @@ export default function Dashboard() {
                             className="w-full h-full object-cover"
                           />
                         }
-                        value={currentSensorData.hr}
+                        value={currentAverage ? currentAverage.hr : 0}
                         unit="BPM"
                         subtitle="Beat per Minute"
                       />
@@ -531,7 +650,7 @@ export default function Dashboard() {
                             className="w-full h-full object-cover"
                           />
                         }
-                        value={currentSensorData.temp}
+                        value={currentAverage ? currentAverage.temp : 0}
                         unit="°C"
                         subtitle="Celcius"
                       />
@@ -546,7 +665,7 @@ export default function Dashboard() {
                 transition={{ delay: 0.6 }}
                 className="flex w-full"
               >
-                <RecordsTable rows={sensorData} />
+                <RecordsTable rows={averageHistory} />
               </motion.div>
             </motion.div>
           )}

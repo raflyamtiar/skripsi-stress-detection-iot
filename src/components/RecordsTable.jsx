@@ -154,7 +154,7 @@ export default function RecordsTable({ rows = [] }) {
 
         {currentPage !== totalPages && (
           <button
-            className="px-4 py-2 text-sm mx-1 bg-gray-300 text-sm"
+            className="px-4 py-2 text-sm mx-1 bg-gray-300"
             onClick={() => handlePageChange(totalPages)}
             disabled={currentPage === totalPages}
           >
