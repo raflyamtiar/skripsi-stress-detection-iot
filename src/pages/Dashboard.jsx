@@ -64,9 +64,7 @@ export default function Dashboard() {
 
   // WebSocket connection setup
   useEffect(() => {
-    // const WEBSOCKET_URL =
-    // import.meta.env.VITE_WEBSOCKET_URL || "ws://127.0.0.1:5000";
-    const WEBSOCKET_URL = "ws://premedical-caryl-gawkishly.ngrok-free.dev";
+    const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
     const socketPath = "/socket.io/?EIO=4&transport=websocket&type=frontend";
 
     console.log("Connecting to WebSocket:", WEBSOCKET_URL);
