@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import SensorCard from "../components/SensorCard";
 import StressLevelCard from "../components/StressLevelCard";
@@ -55,6 +56,8 @@ const normalizeHistoryRow = (entry) => ({
 });
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
   // Measurement state: 'idle' | 'measuring' | 'done'
   const [measurementState, setMeasurementState] = useState("idle");
   const [countdown, setCountdown] = useState(60);
@@ -640,6 +643,30 @@ export default function Dashboard() {
                 Pastikan sensor sudah terpasang dengan baik sebelum memulai
                 pengukuran
               </motion.p>
+
+              {/* Button Lihat Riwayat Lengkap */}
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                onClick={() => navigate("/stress-history")}
+                className="mt-6 flex items-center gap-2 px-6 py-3 bg-white hover:bg-gray-50 border-2 border-blue-500 text-blue-600 rounded-full font-semibold transition-all shadow-md hover:shadow-lg"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Lihat Riwayat Lengkap
+              </motion.button>
             </motion.div>
           )}
 

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import SessionDetail from "./pages/SessionDetail";
+import StressHistory from "./pages/StressHistory";
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/session/:sessionId" element={<SessionDetail />} />
+          <Route path="/stress-history" element={<StressHistory />} />
         </Routes>
       </div>
     </BrowserRouter>
