@@ -6,6 +6,7 @@ import StressLevelCard from "../components/StressLevelCard";
 import RecordsTable from "../components/RecordsTable";
 import StressWarningModal from "../components/StressWarningModal";
 import MusicPlayer from "../components/MusicPlayer";
+import ConnectionStatusModal from "../components/ConnectionStatusModal";
 
 function classifyFallback({ hr, gsr, temp }) {
   if (hr >= 60 && hr <= 90 && gsr < 5 && temp >= 33.5 && temp <= 36.9)
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [hasShownWarning, setHasShownWarning] = useState(false);
+  const [showConnectionModal, setShowConnectionModal] = useState(false);
 
   // WebSocket state
   const [sensorData, setSensorData] = useState([]);
@@ -332,6 +334,14 @@ export default function Dashboard() {
     setShowMusicPlayer(false);
   };
 
+  const handleStartClick = () => {
+    if (!isConnected) {
+      setShowConnectionModal(true);
+      return;
+    }
+    handleStartMeasurement();
+  };
+
   return (
     <>
       <div className="flex flex-col px-4 pt-8 pb-6 md:px-8 min-h-screen">
@@ -367,27 +377,68 @@ export default function Dashboard() {
               className="flex flex-col items-center justify-center flex-1 min-h-[500px]"
             >
               <motion.button
-                onClick={handleStartMeasurement}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative group"
+                onClick={handleStartClick}
+                whileHover={isConnected ? { scale: 1.05 } : {}}
+                whileTap={isConnected ? { scale: 0.95 } : {}}
+                className={`relative group ${!isConnected ? "cursor-not-allowed" : ""}`}
+                aria-disabled={!isConnected}
               >
                 {/* Outer glow ring */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-xl opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
+                <div
+                  className={`absolute inset-0 rounded-full blur-xl transition-opacity ${
+                    isConnected
+                      ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-80 group-hover:opacity-100 animate-pulse"
+                      : "bg-gradient-to-r from-slate-400 via-slate-500 to-slate-600 opacity-60"
+                  }`}
+                ></div>
 
                 {/* Main circular button */}
-                <div className="relative w-64 h-64 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-full flex flex-col items-center justify-center shadow-2xl transform transition-transform">
-                  <div className="absolute inset-2 bg-white rounded-full flex flex-col items-center justify-center">
+                <div
+                  className={`relative w-64 h-64 rounded-full flex flex-col items-center justify-center shadow-2xl transition-all ${
+                    isConnected
+                      ? "bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500"
+                      : "bg-gradient-to-br from-slate-500 via-slate-600 to-slate-700 saturate-75"
+                  }`}
+                >
+                  <div
+                    className={`absolute inset-2 rounded-full flex flex-col items-center justify-center ${
+                      isConnected ? "bg-white" : "bg-white/80"
+                    }`}
+                  >
                     <div className="text-6xl mb-2">🧘‍♀️</div>
-                    <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    <div
+                      className={`text-2xl font-bold bg-clip-text text-transparent ${
+                        isConnected
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600"
+                          : "bg-gradient-to-r from-slate-500 to-slate-600"
+                      }`}
+                    >
                       Mulai Mengukur
                     </div>
                     <div className="text-sm text-gray-500 mt-2">
-                      Tap untuk memulai
+                      {isConnected ? "Tap untuk memulai" : "Hubungkan sensor dulu"}
                     </div>
                   </div>
+
+                  {!isConnected && (
+                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/90 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-rose-500 shadow-md">
+                      Sensor Offline
+                    </div>
+                  )}
                 </div>
               </motion.button>
+
+              {!isConnected && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="mt-6 flex items-center gap-2 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600"
+                >
+                  <span className="text-base">⚠️</span>
+                  <span>Periksa kembali koneksi perangkat sebelum memulai pengukuran.</span>
+                </motion.div>
+              )}
 
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -681,6 +732,11 @@ export default function Dashboard() {
         isOpen={showWarningModal}
         onClose={handleCloseModal}
         onListenMusic={handleListenMusic}
+      />
+
+      <ConnectionStatusModal
+        isOpen={showConnectionModal}
+        onClose={() => setShowConnectionModal(false)}
       />
 
       <MusicPlayer isOpen={showMusicPlayer} onClose={handleCloseMusicPlayer} />
