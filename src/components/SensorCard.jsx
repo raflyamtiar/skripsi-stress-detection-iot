@@ -46,16 +46,10 @@ export default function SensorCard({
               subtitle === "Celcius" ? "items-start" : "items-end"
             }`}
           >
-            <p className="flex text-4xl font-extrabold md:font-bold">
-              {value === 0 || value === "0" || value === "0.000"
-                ? "Menunggu..."
-                : value}
+            <p className="flex text-4xl font-extrabold md:font-bold">{value}</p>
+            <p className="flex text-lg items-end h-full font-extrabold md:font-bold">
+              {unit}
             </p>
-            {value !== 0 && value !== "0" && value !== "0.000" && (
-              <p className="flex text-lg items-end h-full font-extrabold md:font-bold">
-                {unit}
-              </p>
-            )}
           </div>
 
           <p className="flex text-xs md:text-sm font-normal">{subtitle}</p>

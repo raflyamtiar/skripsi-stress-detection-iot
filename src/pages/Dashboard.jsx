@@ -7,6 +7,7 @@ import RecordsTable from "../components/RecordsTable";
 import StressWarningModal from "../components/StressWarningModal";
 import MusicPlayer from "../components/MusicPlayer";
 import ConnectionStatusModal from "../components/ConnectionStatusModal";
+import LoadingModal from "../components/LoadingModal";
 
 const DEFAULT_API_BASE_URL =
   "https://premedical-caryl-gawkishly.ngrok-free.dev";
@@ -66,6 +67,7 @@ export default function Dashboard() {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const [hasShownWarning, setHasShownWarning] = useState(false);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
 
   // WebSocket state
   const [sensorData, setSensorData] = useState([]);
@@ -121,12 +123,14 @@ export default function Dashboard() {
   }, []);
 
   const submitPrediction = useCallback(
-    async ({ hr, temp, gsr, timestamp }) => {
+    async ({ hr, temp, gsr, timestamp }, last10Data = null) => {
       setIsSubmittingResult(true);
       setResultError(null);
       setPredictionResult(null);
+      setShowLoadingModal(true); // Tampilkan loading modal
 
       try {
+        // Step 1: POST ke /predict-stress untuk klasifikasi
         const response = await fetch(PREDICT_ENDPOINT, {
           method: "POST",
           headers: {
@@ -147,6 +151,9 @@ export default function Dashboard() {
           throw new Error("Invalid response body");
         }
 
+        // Ambil session_id dari response
+        const sessionId = json.session_id;
+
         setPredictionResult({
           label: data.label,
           confidence: data.confidence_level,
@@ -155,7 +162,36 @@ export default function Dashboard() {
           gsr: data.eda,
           timestamp,
           historyId: json.history_id,
+          sessionId: sessionId,
         });
+
+        // Step 2: Jika ada session_id dan last10Data, kirim bulk readings
+        if (sessionId && last10Data && last10Data.readings) {
+          const bulkEndpoint = `${API_BASE_URL}/api/sessions/${sessionId}/sensor-readings/bulk`;
+
+          try {
+            const bulkResponse = await fetch(bulkEndpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "true",
+              },
+              body: JSON.stringify(last10Data), // {readings: [{hr, temp, eda}]}
+            });
+
+            if (!bulkResponse.ok) {
+              console.error(
+                "Failed to submit bulk readings:",
+                await bulkResponse.text()
+              );
+            } else {
+              console.log("✅ Bulk readings submitted successfully");
+            }
+          } catch (bulkError) {
+            console.error("Error submitting bulk readings:", bulkError);
+            // Don't throw, karena klasifikasi sudah berhasil
+          }
+        }
 
         await fetchHistory();
       } catch (error) {
@@ -165,6 +201,7 @@ export default function Dashboard() {
         );
       } finally {
         setIsSubmittingResult(false);
+        setShowLoadingModal(false); // Sembunyikan loading modal
       }
     },
     [fetchHistory]
@@ -323,41 +360,59 @@ export default function Dashboard() {
           // Simpan data lengkap (detik 1-60)
           localStorage.setItem("measurementData", JSON.stringify(existingData));
 
-          // Update last10Seconds saat detik 51-60 (real-time update setiap detik)
+          // Update last10Seconds saat detik 51-60 dengan format baru
           if (currentSecond >= 51 && currentSecond <= 60) {
             // Ambil 10 data terakhir (detik 51-60)
-            const last10 = existingData.slice(-10);
+            const last10Raw = existingData.slice(-10);
+            // Format menjadi {readings: [{hr, temp, eda}]}
+            const last10Formatted = {
+              readings: last10Raw.map((item) => ({
+                hr: item.hr,
+                temp: item.temp,
+                eda: item.gsr, // gsr -> eda
+              })),
+            };
             // Replace last10Seconds (bukan append)
-            localStorage.setItem("last10Seconds", JSON.stringify(last10));
+            localStorage.setItem(
+              "last10Seconds",
+              JSON.stringify(last10Formatted)
+            );
           }
 
           // When countdown reaches 0, move to done state
           if (newCount <= 0) {
             clearInterval(countdownIntervalRef.current);
 
-            // HANYA saat countdown = 0, hitung rata-rata dari last10Seconds
-            const last10Data = JSON.parse(
-              localStorage.getItem("last10Seconds") || "[]"
-            );
+            // Ambil data 10 detik terakhir dari localStorage
+            const last10DataStr = localStorage.getItem("last10Seconds");
+            const last10Data = last10DataStr ? JSON.parse(last10DataStr) : null;
 
-            if (last10Data.length > 0) {
-              // Hitung rata-rata dari 10 detik terakhir
+            if (
+              last10Data &&
+              last10Data.readings &&
+              last10Data.readings.length > 0
+            ) {
+              // Hitung rata-rata dari 10 detik terakhir untuk klasifikasi
               const avgHr =
-                last10Data.reduce((sum, d) => sum + d.hr, 0) /
-                last10Data.length;
+                last10Data.readings.reduce((sum, d) => sum + d.hr, 0) /
+                last10Data.readings.length;
               const avgTemp =
-                last10Data.reduce((sum, d) => sum + d.temp, 0) /
-                last10Data.length;
-              const avgGsr =
-                last10Data.reduce((sum, d) => sum + d.gsr, 0) /
-                last10Data.length;
+                last10Data.readings.reduce((sum, d) => sum + d.temp, 0) /
+                last10Data.readings.length;
+              const avgEda =
+                last10Data.readings.reduce((sum, d) => sum + d.eda, 0) /
+                last10Data.readings.length;
 
-              submitPrediction({
-                hr: parseFloat(avgHr.toFixed(2)),
-                temp: parseFloat(avgTemp.toFixed(2)),
-                gsr: parseFloat(avgGsr.toFixed(3)),
-                timestamp,
-              });
+              // Kirim rata-rata ke /predict-stress dan simpan last10Data untuk bulk
+              submitPrediction(
+                {
+                  hr: parseFloat(avgHr.toFixed(2)),
+                  temp: parseFloat(avgTemp.toFixed(2)),
+                  gsr: parseFloat(avgEda.toFixed(3)),
+                  timestamp,
+                },
+                last10Data
+              );
             } else {
               setResultError(
                 "Data sensor tidak cukup untuk dikirim. Silakan ulangi pengukuran."
@@ -905,6 +960,11 @@ export default function Dashboard() {
       <ConnectionStatusModal
         isOpen={showConnectionModal}
         onClose={() => setShowConnectionModal(false)}
+      />
+
+      <LoadingModal
+        isOpen={showLoadingModal}
+        message="Menganalisis data sensor dan mengirim ke server..."
       />
 
       <MusicPlayer isOpen={showMusicPlayer} onClose={handleCloseMusicPlayer} />
