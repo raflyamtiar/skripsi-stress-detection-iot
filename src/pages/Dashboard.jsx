@@ -342,6 +342,25 @@ export default function Dashboard() {
     handleStartMeasurement();
   };
 
+  const handleInterruptMeasurement = () => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+
+    localStorage.removeItem("measurementData");
+    localStorage.removeItem("last10Seconds");
+    localStorage.removeItem("last10SecondsAverage");
+
+    setMeasurementData([]);
+    setAverageHistory([]);
+    setCurrentAverage(null);
+    setShowWarningModal(false);
+    setShowMusicPlayer(false);
+    setHasShownWarning(false);
+    setCountdown(60);
+    setMeasurementState("idle");
+  };
+
   return (
     <>
       <div className="flex flex-col px-4 pt-8 pb-6 md:px-8 min-h-screen">
@@ -380,7 +399,9 @@ export default function Dashboard() {
                 onClick={handleStartClick}
                 whileHover={isConnected ? { scale: 1.05 } : {}}
                 whileTap={isConnected ? { scale: 0.95 } : {}}
-                className={`relative group ${!isConnected ? "cursor-not-allowed" : ""}`}
+                className={`relative group ${
+                  !isConnected ? "cursor-not-allowed" : ""
+                }`}
                 aria-disabled={!isConnected}
               >
                 {/* Outer glow ring */}
@@ -416,7 +437,9 @@ export default function Dashboard() {
                       Mulai Mengukur
                     </div>
                     <div className="text-sm text-gray-500 mt-2">
-                      {isConnected ? "Tap untuk memulai" : "Hubungkan sensor dulu"}
+                      {isConnected
+                        ? "Tap untuk memulai"
+                        : "Hubungkan sensor dulu"}
                     </div>
                   </div>
 
@@ -436,7 +459,10 @@ export default function Dashboard() {
                   className="mt-6 flex items-center gap-2 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600"
                 >
                   <span className="text-base">⚠️</span>
-                  <span>Periksa kembali koneksi perangkat sebelum memulai pengukuran.</span>
+                  <span>
+                    Periksa kembali koneksi perangkat sebelum memulai
+                    pengukuran.
+                  </span>
                 </motion.div>
               )}
 
@@ -487,6 +513,16 @@ export default function Dashboard() {
                   </motion.div>
                   <span>Pengukuran berlangsung {60 - countdown} detik</span>
                 </div>
+
+                <motion.button
+                  onClick={handleInterruptMeasurement}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="group mt-6 inline-flex items-center gap-2 rounded-full border border-rose-100 bg-white/80 px-5 py-2 text-sm font-semibold text-rose-600 shadow-sm backdrop-blur"
+                >
+                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500 group-hover:animate-pulse"></span>
+                  Hentikan Pengukuran
+                </motion.button>
               </div>
 
               {/* 3 Sensor Cards with real-time values */}
