@@ -51,6 +51,7 @@ const normalizeHistoryRow = (entry) => ({
   temp: entry.temp,
   gsr: entry.eda,
   level: entry.label,
+  sessionId: entry.session_id, // Tambahkan session_id
 });
 
 export default function Dashboard() {
