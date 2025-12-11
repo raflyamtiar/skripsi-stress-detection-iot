@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import io from "socket.io-client";
 import SensorCard from "../components/SensorCard";
@@ -8,28 +8,59 @@ import StressWarningModal from "../components/StressWarningModal";
 import MusicPlayer from "../components/MusicPlayer";
 import ConnectionStatusModal from "../components/ConnectionStatusModal";
 
-function classifyFallback({ hr, gsr, temp }) {
-  if (hr >= 60 && hr <= 90 && gsr < 5 && temp >= 33.5 && temp <= 36.9)
-    return "Normal";
-  if (
-    hr > 90 &&
-    hr <= 100 &&
-    gsr >= 5 &&
-    gsr <= 10 &&
-    temp >= 33 &&
-    temp <= 34.5
-  )
-    return "Stress Sedang";
-  return "Stress Berat";
-}
+const DEFAULT_API_BASE_URL =
+  "https://premedical-caryl-gawkishly.ngrok-free.dev";
+
+const sanitizeBaseUrl = (url) => (url.endsWith("/") ? url.slice(0, -1) : url);
+
+const API_BASE_URL = sanitizeBaseUrl(
+  import.meta.env.VITE_STRESS_API_BASE || DEFAULT_API_BASE_URL
+);
+
+const PREDICT_ENDPOINT =
+  import.meta.env.VITE_PREDICT_STRESS_URL ||
+  `${API_BASE_URL}/api/predict-stress`;
+
+const HISTORY_ENDPOINT =
+  import.meta.env.VITE_STRESS_HISTORY_URL ||
+  `${API_BASE_URL}/api/stress-history`;
+
+const formatTimestampID = (dateInput) => {
+  const date = new Date(dateInput);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
+const normalizeHistoryRow = (entry) => ({
+  id: entry.id,
+  timestamp: formatTimestampID(entry.timestamp || entry.created_at),
+  hr: entry.hr,
+  temp: entry.temp,
+  gsr: entry.eda,
+  level: entry.label,
+});
 
 export default function Dashboard() {
   // Measurement state: 'idle' | 'measuring' | 'done'
   const [measurementState, setMeasurementState] = useState("idle");
   const [countdown, setCountdown] = useState(60);
-  const [measurementData, setMeasurementData] = useState([]);
-  const [averageHistory, setAverageHistory] = useState([]); // History of averages
-  const [currentAverage, setCurrentAverage] = useState(null); // Rata-rata sesi saat ini
+  const [predictionResult, setPredictionResult] = useState(null);
+  const [isSubmittingResult, setIsSubmittingResult] = useState(false);
+  const [resultError, setResultError] = useState(null);
+  const [historyRows, setHistoryRows] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
@@ -57,12 +88,96 @@ export default function Dashboard() {
   const countdownIntervalRef = useRef(null);
   const currentSensorDataRef = useRef(currentSensorData); // Ref untuk akses real-time data
 
-  const levelText = classifyFallback(currentSensorData);
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const response = await fetch(HISTORY_ENDPOINT, {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch history");
+      }
+      const json = await response.json();
+      if (json?.success && Array.isArray(json.data)) {
+        const mapped = json.data
+          .slice()
+          .sort(
+            (a, b) =>
+              new Date(b.timestamp || b.created_at) -
+              new Date(a.timestamp || a.created_at)
+          )
+          .map(normalizeHistoryRow);
+        setHistoryRows(mapped);
+      } else {
+        setHistoryRows([]);
+      }
+    } catch (error) {
+      console.error("Gagal memuat riwayat stress:", error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  const submitPrediction = useCallback(
+    async ({ hr, temp, gsr, timestamp }) => {
+      setIsSubmittingResult(true);
+      setResultError(null);
+      setPredictionResult(null);
+
+      try {
+        const response = await fetch(PREDICT_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "ngrok-skip-browser-warning": "true",
+          },
+          body: JSON.stringify({ hr, temp, eda: gsr }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to submit prediction");
+        }
+
+        const json = await response.json();
+        const data = json?.data;
+
+        if (!json?.success || !data) {
+          throw new Error("Invalid response body");
+        }
+
+        setPredictionResult({
+          label: data.label,
+          confidence: data.confidence_level,
+          hr: data.hr,
+          temp: data.temp,
+          gsr: data.eda,
+          timestamp,
+          historyId: json.history_id,
+        });
+
+        await fetchHistory();
+      } catch (error) {
+        console.error("Gagal mengirim hasil pengukuran:", error);
+        setResultError(
+          "Gagal mengirim hasil ke server. Silakan mulai ulang pengukuran."
+        );
+      } finally {
+        setIsSubmittingResult(false);
+      }
+    },
+    [fetchHistory]
+  );
 
   // Update ref setiap kali currentSensorData berubah
   useEffect(() => {
     currentSensorDataRef.current = currentSensorData;
   }, [currentSensorData]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   // WebSocket connection setup
   useEffect(() => {
@@ -135,11 +250,9 @@ export default function Dashboard() {
         timestamp: timestamp,
       };
 
-      const level = classifyFallback(newData);
-
       setCurrentSensorData(newData);
       setSensorData((prevData) => [
-        { ...newData, level },
+        newData,
         ...prevData.slice(0, 49), // Keep last 50 records
       ]);
     };
@@ -218,8 +331,6 @@ export default function Dashboard() {
             localStorage.setItem("last10Seconds", JSON.stringify(last10));
           }
 
-          setMeasurementData(existingData);
-
           // When countdown reaches 0, move to done state
           if (newCount <= 0) {
             clearInterval(countdownIntervalRef.current);
@@ -241,36 +352,17 @@ export default function Dashboard() {
                 last10Data.reduce((sum, d) => sum + d.gsr, 0) /
                 last10Data.length;
 
-              // Classify stress level berdasarkan rata-rata
-              const avgStressLevel = classifyFallback({
-                hr: avgHr,
-                temp: avgTemp,
-                gsr: avgGsr,
-              });
-
-              const averageData = {
+              submitPrediction({
                 hr: parseFloat(avgHr.toFixed(2)),
                 temp: parseFloat(avgTemp.toFixed(2)),
                 gsr: parseFloat(avgGsr.toFixed(3)),
-                level: avgStressLevel,
-                period: "Detik 51-60",
-                timestamp: timestamp,
-              };
-
-              // Append to last10SecondsAverage (push, bukan replace)
-              const existingAverages = JSON.parse(
-                localStorage.getItem("last10SecondsAverage") || "[]"
+                timestamp,
+              });
+            } else {
+              setResultError(
+                "Data sensor tidak cukup untuk dikirim. Silakan ulangi pengukuran."
               );
-              existingAverages.push(averageData);
-              localStorage.setItem(
-                "last10SecondsAverage",
-                JSON.stringify(existingAverages)
-              );
-
-              // Simpan rata-rata untuk ditampilkan di cards
-              setCurrentAverage(averageData);
-              // Update state history untuk tabel
-              setAverageHistory(existingAverages);
+              setPredictionResult(null);
             }
 
             setMeasurementState("done");
@@ -287,7 +379,7 @@ export default function Dashboard() {
         }
       };
     }
-  }, [measurementState]); // Hanya trigger saat measurementState berubah, bukan currentSensorData
+  }, [measurementState, submitPrediction]); // Hanya trigger saat measurementState berubah, bukan currentSensorData
 
   // Start measurement handler
   const handleStartMeasurement = () => {
@@ -295,8 +387,11 @@ export default function Dashboard() {
     localStorage.removeItem("measurementData");
     localStorage.removeItem("last10Seconds");
     localStorage.removeItem("last10SecondsAverage");
-    setMeasurementData([]);
-    setAverageHistory([]);
+    setPredictionResult(null);
+    setResultError(null);
+    setIsSubmittingResult(false);
+    setShowWarningModal(false);
+    setHasShownWarning(false);
     setMeasurementState("measuring");
   };
 
@@ -305,21 +400,35 @@ export default function Dashboard() {
     setMeasurementState("idle");
     setCountdown(60);
     setHasShownWarning(false);
-    setCurrentAverage(null);
+    setPredictionResult(null);
+    setResultError(null);
+    setIsSubmittingResult(false);
+    setShowWarningModal(false);
+    setShowMusicPlayer(false);
   };
 
-  // Show modal ONLY when done state AND stress berat
+  // Show modal ONLY when done state AND API indicates high stress
   useEffect(() => {
+    const label = predictionResult?.label?.toLowerCase() || "";
+    const isHighStress = label.includes("high") || label.includes("berat");
+
     if (
       measurementState === "done" &&
-      currentAverage &&
-      currentAverage.level === "Stress Berat" &&
-      !hasShownWarning
+      isHighStress &&
+      !hasShownWarning &&
+      !isSubmittingResult &&
+      !resultError
     ) {
       setShowWarningModal(true);
       setHasShownWarning(true);
     }
-  }, [measurementState, currentAverage, hasShownWarning]);
+  }, [
+    measurementState,
+    predictionResult,
+    hasShownWarning,
+    isSubmittingResult,
+    resultError,
+  ]);
 
   const handleListenMusic = () => {
     setShowWarningModal(false);
@@ -351,12 +460,12 @@ export default function Dashboard() {
     localStorage.removeItem("last10Seconds");
     localStorage.removeItem("last10SecondsAverage");
 
-    setMeasurementData([]);
-    setAverageHistory([]);
-    setCurrentAverage(null);
     setShowWarningModal(false);
     setShowMusicPlayer(false);
     setHasShownWarning(false);
+    setPredictionResult(null);
+    setResultError(null);
+    setIsSubmittingResult(false);
     setCountdown(60);
     setMeasurementState("idle");
   };
@@ -645,10 +754,20 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold text-green-600 mb-2">
                   Pengukuran Selesai!
                 </div>
-                <div className="text-gray-600 mb-4">
-                  Data rata-rata tersimpan ({averageHistory.length} rata-rata
-                  dari 10 detik terakhir)
+                <div className="text-gray-600 mb-1 min-h-[24px]">
+                  {isSubmittingResult
+                    ? "Mengirim hasil rata-rata ke server..."
+                    : resultError
+                    ? resultError
+                    : predictionResult
+                    ? `Hasil terbaru: ${predictionResult.label}`
+                    : "Menunggu respons dari server..."}
                 </div>
+                {predictionResult?.timestamp && (
+                  <div className="text-sm text-gray-500 mb-4">
+                    Dicatat pada {predictionResult.timestamp}
+                  </div>
+                )}
                 <button
                   onClick={handleResetMeasurement}
                   className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-semibold transition-colors"
@@ -665,15 +784,15 @@ export default function Dashboard() {
                   className="flex w-full md:max-w-[300px]"
                 >
                   <StressLevelCard
-                    level={
-                      currentAverage
-                        ? currentAverage.level === "Normal"
-                          ? "normal"
-                          : currentAverage.level === "Stress Berat"
-                          ? "berat"
-                          : "sedang"
-                        : "normal"
+                    label={
+                      predictionResult?.label ||
+                      (isSubmittingResult
+                        ? "Mengirim data..."
+                        : resultError
+                        ? "Tidak tersedia"
+                        : "Menunggu hasil")
                     }
+                    confidence={predictionResult?.confidence}
                   />
                 </motion.div>
 
@@ -695,7 +814,10 @@ export default function Dashboard() {
                         />
                       }
                       value={
-                        currentAverage ? currentAverage.gsr.toFixed(3) : "0.000"
+                        predictionResult &&
+                        typeof predictionResult.gsr === "number"
+                          ? predictionResult.gsr.toFixed(3)
+                          : "0.000"
                       }
                       isGSR={true}
                       unit="µS"
@@ -720,7 +842,12 @@ export default function Dashboard() {
                             className="w-full h-full object-cover"
                           />
                         }
-                        value={currentAverage ? currentAverage.hr : 0}
+                        value={
+                          predictionResult &&
+                          typeof predictionResult.hr === "number"
+                            ? Math.round(predictionResult.hr)
+                            : 0
+                        }
                         unit="BPM"
                         subtitle="Beat per Minute"
                       />
@@ -742,7 +869,12 @@ export default function Dashboard() {
                             className="w-full h-full object-cover"
                           />
                         }
-                        value={currentAverage ? currentAverage.temp : 0}
+                        value={
+                          predictionResult &&
+                          typeof predictionResult.temp === "number"
+                            ? predictionResult.temp.toFixed(1)
+                            : "0"
+                        }
                         unit="°C"
                         subtitle="Celcius"
                       />
@@ -757,7 +889,7 @@ export default function Dashboard() {
                 transition={{ delay: 0.6 }}
                 className="flex w-full"
               >
-                <RecordsTable rows={averageHistory} />
+                <RecordsTable rows={historyRows} isLoading={historyLoading} />
               </motion.div>
             </motion.div>
           )}

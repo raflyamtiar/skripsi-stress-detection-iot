@@ -1,10 +1,10 @@
 import { useState } from "react";
 
-export default function RecordsTable({ rows = [] }) {
+export default function RecordsTable({ rows = [], isLoading = false }) {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
   const totalRows = rows.length;
-  const totalPages = Math.ceil(totalRows / rowsPerPage);
+  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
 
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentRows = rows.slice(startIndex, startIndex + rowsPerPage);
@@ -112,8 +112,8 @@ export default function RecordsTable({ rows = [] }) {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {currentRows.map((r, i) => (
-              <tr key={i}>
-                <td className="px-3 py-2 text-sm">{i + 1}</td>
+              <tr key={`${r.id ?? i}-${r.timestamp}`}>
+                <td className="px-3 py-2 text-sm">{startIndex + i + 1}</td>
                 <td className="px-3 py-2 text-sm tabular-nums">
                   {r.timestamp}
                 </td>
@@ -126,7 +126,7 @@ export default function RecordsTable({ rows = [] }) {
             {currentRows.length === 0 && (
               <tr>
                 <td colSpan="6" className="px-3 py-3 text-center text-gray-500">
-                  Belum ada data
+                  {isLoading ? "Memuat data riwayat..." : "Belum ada data"}
                 </td>
               </tr>
             )}
@@ -152,27 +152,17 @@ export default function RecordsTable({ rows = [] }) {
 
         {renderPageNumbers}
 
-        {currentPage !== totalPages && (
-          <button
-            className="px-4 py-2 text-sm mx-1 bg-gray-300"
-            onClick={() => handlePageChange(totalPages)}
-            disabled={currentPage === totalPages}
-          >
-            {totalPages}
-          </button>
-        )}
-
         <button
           className="px-3 py-2 bg-gray-300 text-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          disabled={currentPage === totalPages || totalRows === 0}
         >
           Next
         </button>
         <button
           className="px-3 py-2 bg-gray-300 text-sm rounded-r-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           onClick={() => handlePageChange(totalPages)}
-          disabled={currentPage === totalPages}
+          disabled={currentPage === totalPages || totalRows === 0}
         >
           &raquo;
         </button>
