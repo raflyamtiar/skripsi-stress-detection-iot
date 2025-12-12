@@ -9,6 +9,7 @@ import StressWarningModal from "../components/StressWarningModal";
 import MusicPlayer from "../components/MusicPlayer";
 import ConnectionStatusModal from "../components/ConnectionStatusModal";
 import LoadingModal from "../components/LoadingModal";
+import { getUser, setAccessToken, setUser } from "../lib/api";
 
 const DEFAULT_API_BASE_URL =
   "https://premedical-caryl-gawkishly.ngrok-free.dev";
@@ -93,6 +94,7 @@ export default function Dashboard() {
   const socketRef = useRef(null);
   const countdownIntervalRef = useRef(null);
   const currentSensorDataRef = useRef(currentSensorData); // Ref untuk akses real-time data
+  const [authUser, setAuthUser] = useState(getUser());
 
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -219,6 +221,34 @@ export default function Dashboard() {
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
+
+  // Listen for auth changes (login on /login will set localStorage)
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === "user") {
+        try {
+          const u = e.newValue ? JSON.parse(e.newValue) : null;
+          setAuthUser(u);
+        } catch (err) {
+          setAuthUser(null);
+        }
+      }
+      if (e.key === "access_token" && !e.newValue) {
+        // token removed
+        setAuthUser(null);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const handleLogout = () => {
+    setAccessToken(null);
+    setUser(null);
+    setAuthUser(null);
+    // refresh history so delete buttons disappear
+    fetchHistory();
+  };
 
   // WebSocket connection setup
   useEffect(() => {
@@ -546,9 +576,21 @@ export default function Dashboard() {
                 isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
               }`}
             />
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600 mr-3">
               {isConnected ? "Connected" : "Disconnected"}
             </span>
+            {authUser ? (
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-700">{authUser.email}</div>
+                <button
+                  onClick={handleLogout}
+                  className="text-sm text-rose-600 hover:underline"
+                  title="Logout"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 

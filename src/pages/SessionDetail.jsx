@@ -9,6 +9,7 @@ import {
   Calendar,
   Clock,
 } from "lucide-react";
+import { authFetch, API_BASE_URL } from "../lib/api";
 
 const DEFAULT_API_BASE_URL =
   "https://premedical-caryl-gawkishly.ngrok-free.dev";
@@ -324,6 +325,42 @@ export default function SessionDetail() {
                             {reading.eda?.toFixed(3)} µS
                           </span>
                         </div>
+                      </div>
+
+                      {/* Action buttons (delete) */}
+                      <div className="flex items-center gap-2">
+                        {localStorage.getItem("access_token") ? (
+                          <button
+                            onClick={async () => {
+                              const ok = window.confirm(
+                                "Hapus pembacaan sensor ini?"
+                              );
+                              if (!ok) return;
+                              try {
+                                const resp = await authFetch(
+                                  `${API_BASE_URL}/api/sensor-readings/${reading.id}`,
+                                  { method: "DELETE" }
+                                );
+                                if (!resp.ok) {
+                                  const txt = await resp.text();
+                                  throw new Error(txt || "Delete failed");
+                                }
+                                // remove from UI
+                                setSensorReadings((prev) =>
+                                  prev.filter((p) => p.id !== reading.id)
+                                );
+                              } catch (err) {
+                                console.error("Delete error:", err);
+                                alert(
+                                  "Gagal menghapus: " + (err.message || err)
+                                );
+                              }
+                            }}
+                            className="px-3 py-1 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded-md"
+                          >
+                            Delete
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   </motion.div>

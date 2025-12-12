@@ -10,6 +10,7 @@ import {
   Eye,
   FileText,
 } from "lucide-react";
+import { authFetch, API_BASE_URL } from "../lib/api";
 
 const DEFAULT_API_BASE_URL =
   "https://premedical-caryl-gawkishly.ngrok-free.dev";
@@ -291,15 +292,49 @@ export default function StressHistory() {
                     {/* Action Button */}
                     {entry.session_id && (
                       <div className="flex justify-end">
-                        <button
-                          onClick={() =>
-                            navigate(`/session/${entry.session_id}`)
-                          }
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Lihat Detail Sesi
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() =>
+                              navigate(`/session/${entry.session_id}`)
+                            }
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Lihat Detail Sesi
+                          </button>
+
+                          {localStorage.getItem("access_token") ? (
+                            <button
+                              onClick={async () => {
+                                const ok = window.confirm(
+                                  "Hapus record riwayat ini? Aksi ini dapat menghapus sesi terkait."
+                                );
+                                if (!ok) return;
+                                try {
+                                  const resp = await authFetch(
+                                    `${API_BASE_URL}/api/stress-history/${entry.id}`,
+                                    { method: "DELETE" }
+                                  );
+                                  if (!resp.ok) {
+                                    const txt = await resp.text();
+                                    throw new Error(txt || "Delete failed");
+                                  }
+                                  setHistoryData((prev) =>
+                                    prev.filter((p) => p.id !== entry.id)
+                                  );
+                                } catch (err) {
+                                  console.error("Delete error:", err);
+                                  alert(
+                                    "Gagal menghapus: " + (err.message || err)
+                                  );
+                                }
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition-colors font-medium"
+                            >
+                              Delete
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                     )}
                   </div>
