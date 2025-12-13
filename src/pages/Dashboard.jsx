@@ -562,29 +562,40 @@ export default function Dashboard() {
   return (
     <>
       <div className="flex flex-col px-4 pt-8 pb-6 md:px-8 min-h-screen">
-        {/* Header */}
-        <div className="flex mb-6 justify-between items-center">
+        {/* Header - Mobile Friendly */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             Status Anda Saat ini{" "}
             <span role="img" aria-label="meditasi">
               🧘
             </span>
           </h1>
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-3 h-3 rounded-full ${
-                isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
-              }`}
-            />
-            <span className="text-sm text-gray-600 mr-3">
-              {isConnected ? "Connected" : "Disconnected"}
-            </span>
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+            {/* Connection Status */}
+            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200">
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
+                }`}
+              />
+              <span className="text-sm font-medium text-gray-700">
+                {isConnected ? "Connected" : "Disconnected"}
+              </span>
+            </div>
+            
+            {/* User Info & Logout */}
             {authUser ? (
-              <div className="flex items-center gap-3">
-                <div className="text-sm text-gray-700">{authUser.email}</div>
+              <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-lg shadow-sm border border-blue-200">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    {authUser.email?.[0]?.toUpperCase() || "A"}
+                  </div>
+                  <div className="text-sm font-medium text-gray-700">{authUser.email}</div>
+                </div>
                 <button
                   onClick={handleLogout}
-                  className="text-sm text-rose-600 hover:underline"
+                  className="text-sm font-medium text-rose-600 hover:text-rose-700 hover:underline transition-colors"
                   title="Logout"
                 >
                   Logout
