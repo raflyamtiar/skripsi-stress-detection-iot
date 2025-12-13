@@ -1,8 +1,6 @@
-const DEFAULT_API_BASE_URL =
-  "https://premedical-caryl-gawkishly.ngrok-free.dev";
 const sanitizeBaseUrl = (url) => (url.endsWith("/") ? url.slice(0, -1) : url);
 const API_BASE_URL = sanitizeBaseUrl(
-  import.meta.env.VITE_STRESS_API_BASE || DEFAULT_API_BASE_URL
+  import.meta.env.VITE_STRESS_API_BASE
 );
 
 export function getAccessToken() {
@@ -23,7 +21,8 @@ export function getUser() {
   try {
     const s = localStorage.getItem("user");
     return s ? JSON.parse(s) : null;
-  } catch (e) {
+  } catch (error) {
+    console.error(error);
     return null;
   }
 }

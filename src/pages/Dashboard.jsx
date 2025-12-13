@@ -75,7 +75,7 @@ export default function Dashboard() {
   const [showLoadingModal, setShowLoadingModal] = useState(false);
 
   // WebSocket state
-  const [sensorData, setSensorData] = useState([]);
+  const [_sensorData, setSensorData] = useState([]);
   const [currentSensorData, setCurrentSensorData] = useState({
     hr: 0,
     temp: 0,
@@ -229,7 +229,7 @@ export default function Dashboard() {
         try {
           const u = e.newValue ? JSON.parse(e.newValue) : null;
           setAuthUser(u);
-        } catch (err) {
+        } catch {
           setAuthUser(null);
         }
       }
@@ -253,7 +253,7 @@ export default function Dashboard() {
   // WebSocket connection setup
   useEffect(() => {
     const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
-    const socketPath = "/socket.io/?EIO=4&transport=websocket&type=frontend";
+    const _socketPath = "/socket.io/?EIO=4&transport=websocket&type=frontend";
 
     console.log("Connecting to WebSocket:", WEBSOCKET_URL);
 

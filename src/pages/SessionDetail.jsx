@@ -11,13 +11,6 @@ import {
 } from "lucide-react";
 import { authFetch, API_BASE_URL } from "../lib/api";
 
-const DEFAULT_API_BASE_URL =
-  "https://premedical-caryl-gawkishly.ngrok-free.dev";
-const sanitizeBaseUrl = (url) => (url.endsWith("/") ? url.slice(0, -1) : url);
-const API_BASE_URL = sanitizeBaseUrl(
-  import.meta.env.VITE_STRESS_API_BASE || DEFAULT_API_BASE_URL
-);
-
 const formatTimestampID = (dateInput) => {
   const date = new Date(dateInput);
   if (Number.isNaN(date.getTime())) return "-";

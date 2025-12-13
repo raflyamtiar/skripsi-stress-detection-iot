@@ -12,16 +12,7 @@ import {
 } from "lucide-react";
 import { authFetch, API_BASE_URL } from "../lib/api";
 
-const DEFAULT_API_BASE_URL =
-  "https://premedical-caryl-gawkishly.ngrok-free.dev";
-const sanitizeBaseUrl = (url) => (url.endsWith("/") ? url.slice(0, -1) : url);
-const API_BASE_URL = sanitizeBaseUrl(
-  import.meta.env.VITE_STRESS_API_BASE || DEFAULT_API_BASE_URL
-);
-
-const HISTORY_ENDPOINT =
-  import.meta.env.VITE_STRESS_HISTORY_URL ||
-  `${API_BASE_URL}/api/stress-history`;
+const HISTORY_ENDPOINT = `${API_BASE_URL}/api/stress-history`;
 
 const formatTimestampID = (dateInput) => {
   const date = new Date(dateInput);
