@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Activity,
@@ -9,8 +9,10 @@ import {
   Calendar,
   Eye,
   FileText,
+  Edit3,
+  X,
 } from "lucide-react";
-import { authFetch, API_BASE_URL } from "../lib/api";
+import { authFetch, API_BASE_URL, getUser } from "../lib/api";
 
 const HISTORY_ENDPOINT = `${API_BASE_URL}/api/stress-history`;
 
@@ -60,6 +62,65 @@ export default function StressHistory() {
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [authUser] = useState(getUser());
+  
+  // Modal state for updating session name
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [newSessionName, setNewSessionName] = useState("");
+  const [updateLoading, setUpdateLoading] = useState(false);
+
+  const handleOpenUpdateModal = (sessionId, currentName) => {
+    setSelectedSession(sessionId);
+    setNewSessionName(currentName || "");
+    setShowUpdateModal(true);
+  };
+
+  const handleUpdateSessionName = async () => {
+    if (!selectedSession || !newSessionName.trim()) {
+      alert("Nama session tidak boleh kosong");
+      return;
+    }
+
+    setUpdateLoading(true);
+    try {
+      const response = await authFetch(
+        `${API_BASE_URL}/api/sessions/${selectedSession}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newSessionName.trim(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to update session");
+      }
+
+      // Update local data
+      setHistoryData((prev) =>
+        prev.map((entry) =>
+          entry.session_id === selectedSession
+            ? { ...entry, session_name: newSessionName.trim() }
+            : entry
+        )
+      );
+
+      setShowUpdateModal(false);
+      setSelectedSession(null);
+      setNewSessionName("");
+    } catch (err) {
+      console.error("Error updating session:", err);
+      alert("Gagal update nama session: " + (err.message || err));
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -86,7 +147,36 @@ export default function StressHistory() {
                 new Date(b.timestamp || b.created_at) -
                 new Date(a.timestamp || a.created_at)
             );
-          setHistoryData(sorted);
+          
+          // Fetch session names for entries with session_id
+          const enrichedData = await Promise.all(
+            sorted.map(async (entry) => {
+              if (entry.session_id) {
+                try {
+                  const sessionResponse = await fetch(
+                    `${API_BASE_URL}/api/sessions/${entry.session_id}`,
+                    {
+                      headers: {
+                        "ngrok-skip-browser-warning": "true",
+                      },
+                    }
+                  );
+                  
+                  if (sessionResponse.ok) {
+                    const sessionJson = await sessionResponse.json();
+                    if (sessionJson?.success && sessionJson.data?.name) {
+                      return { ...entry, session_name: sessionJson.data.name };
+                    }
+                  }
+                } catch (err) {
+                  console.warn(`Failed to fetch session ${entry.session_id}:`, err);
+                }
+              }
+              return entry;
+            })
+          );
+          
+          setHistoryData(enrichedData);
         } else {
           setHistoryData([]);
         }
@@ -209,8 +299,48 @@ export default function StressHistory() {
                             </span>
                           </div>
                           {entry.session_id && (
-                            <div className="text-xs text-gray-400 mt-1">
-                              Session: {entry.session_id.substring(0, 8)}...
+                            <div className="mt-1">
+                              {entry.session_name ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                    📋 {entry.session_name}
+                                  </span>
+                                  {authUser && (
+                                    <button
+                                      onClick={() =>
+                                        handleOpenUpdateModal(
+                                          entry.session_id,
+                                          entry.session_name
+                                        )
+                                      }
+                                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                                      title="Update nama session"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-400">
+                                    Session: {entry.session_id.substring(0, 8)}...
+                                  </span>
+                                  {authUser && (
+                                    <button
+                                      onClick={() =>
+                                        handleOpenUpdateModal(
+                                          entry.session_id,
+                                          ""
+                                        )
+                                      }
+                                      className="text-xs text-blue-500 hover:text-blue-700 hover:underline transition-colors flex items-center gap-1"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                      Beri Nama
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -335,6 +465,120 @@ export default function StressHistory() {
           </div>
         )}
       </div>
+
+      {/* Update Session Name Modal */}
+      <AnimatePresence>
+        {showUpdateModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => !updateLoading && setShowUpdateModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2 rounded-lg">
+                      <Edit3 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">Update Nama Session</h3>
+                      <p className="text-sm text-blue-100">
+                        Berikan nama yang mudah diingat
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => !updateLoading && setShowUpdateModal(false)}
+                    className="text-white/80 hover:text-white transition-colors"
+                    disabled={updateLoading}
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6">
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Nama Session
+                  </label>
+                  <input
+                    type="text"
+                    value={newSessionName}
+                    onChange={(e) => setNewSessionName(e.target.value)}
+                    placeholder="Contoh: Pengukuran Pagi Hari"
+                    maxLength={255}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+                    disabled={updateLoading}
+                    autoFocus
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Maksimal 255 karakter
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => !updateLoading && setShowUpdateModal(false)}
+                    className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                    disabled={updateLoading}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleUpdateSessionName}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={updateLoading || !newSessionName.trim()}
+                  >
+                    {updateLoading ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="w-4 h-4" />
+                        <span>Simpan</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

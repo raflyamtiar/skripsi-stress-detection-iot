@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Activity,
@@ -8,8 +8,10 @@ import {
   Zap,
   Calendar,
   Clock,
+  Edit3,
+  X,
 } from "lucide-react";
-import { authFetch, API_BASE_URL } from "../lib/api";
+import { authFetch, API_BASE_URL, getUser } from "../lib/api";
 
 const formatTimestampID = (dateInput) => {
   const date = new Date(dateInput);
@@ -34,6 +36,57 @@ export default function SessionDetail() {
   const [sensorReadings, setSensorReadings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [authUser] = useState(getUser());
+  
+  // Session info
+  const [sessionName, setSessionName] = useState("");
+  
+  // Modal state for updating session name
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [newSessionName, setNewSessionName] = useState("");
+  const [updateLoading, setUpdateLoading] = useState(false);
+
+  const handleOpenUpdateModal = () => {
+    setNewSessionName(sessionName || "");
+    setShowUpdateModal(true);
+  };
+
+  const handleUpdateSessionName = async () => {
+    if (!newSessionName.trim()) {
+      alert("Nama session tidak boleh kosong");
+      return;
+    }
+
+    setUpdateLoading(true);
+    try {
+      const response = await authFetch(
+        `${API_BASE_URL}/api/sessions/${sessionId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newSessionName.trim(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to update session");
+      }
+
+      setSessionName(newSessionName.trim());
+      setShowUpdateModal(false);
+      setNewSessionName("");
+    } catch (err) {
+      console.error("Error updating session:", err);
+      alert("Gagal update nama session: " + (err.message || err));
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchSessionData = async () => {
@@ -41,6 +94,23 @@ export default function SessionDetail() {
       setError(null);
 
       try {
+        // Fetch session info first to get the name
+        const sessionResponse = await fetch(
+          `${API_BASE_URL}/api/sessions/${sessionId}`,
+          {
+            headers: {
+              "ngrok-skip-browser-warning": "true",
+            },
+          }
+        );
+
+        if (sessionResponse.ok) {
+          const sessionJson = await sessionResponse.json();
+          if (sessionJson?.success && sessionJson.data?.name) {
+            setSessionName(sessionJson.data.name);
+          }
+        }
+
         // Fetch stress history
         const historyResponse = await fetch(
           `${API_BASE_URL}/api/sessions/${sessionId}/stress-history`,
@@ -151,7 +221,37 @@ export default function SessionDetail() {
           <h1 className="text-3xl font-bold text-gray-800">
             Detail Sesi Pengukuran
           </h1>
-          <p className="text-gray-600 mt-1">Session ID: {sessionId}</p>
+          
+          {sessionName ? (
+            <div className="flex items-center gap-3 mt-2">
+              <span className="text-lg font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg">
+                📋 {sessionName}
+              </span>
+              {authUser && (
+                <button
+                  onClick={handleOpenUpdateModal}
+                  className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 transition-colors"
+                  title="Update nama session"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Edit
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 mt-2">
+              <p className="text-gray-600">Session ID: {sessionId}</p>
+              {authUser && (
+                <button
+                  onClick={handleOpenUpdateModal}
+                  className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-700 hover:underline transition-colors"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Beri Nama
+                </button>
+              )}
+            </div>
+          )}
         </motion.div>
 
         {/* Stress History Card */}
@@ -363,6 +463,120 @@ export default function SessionDetail() {
           )}
         </motion.div>
       </div>
+
+      {/* Update Session Name Modal */}
+      <AnimatePresence>
+        {showUpdateModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => !updateLoading && setShowUpdateModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2 rounded-lg">
+                      <Edit3 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">Update Nama Session</h3>
+                      <p className="text-sm text-blue-100">
+                        Berikan nama yang mudah diingat
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => !updateLoading && setShowUpdateModal(false)}
+                    className="text-white/80 hover:text-white transition-colors"
+                    disabled={updateLoading}
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6">
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Nama Session
+                  </label>
+                  <input
+                    type="text"
+                    value={newSessionName}
+                    onChange={(e) => setNewSessionName(e.target.value)}
+                    placeholder="Contoh: Pengukuran Pagi Hari"
+                    maxLength={255}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+                    disabled={updateLoading}
+                    autoFocus
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Maksimal 255 karakter
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => !updateLoading && setShowUpdateModal(false)}
+                    className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                    disabled={updateLoading}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleUpdateSessionName}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={updateLoading || !newSessionName.trim()}
+                  >
+                    {updateLoading ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="w-4 h-4" />
+                        <span>Simpan</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
