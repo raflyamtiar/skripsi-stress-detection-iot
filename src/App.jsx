@@ -3,6 +3,7 @@ import Dashboard from "./pages/Dashboard";
 import SessionDetail from "./pages/SessionDetail";
 import StressHistory from "./pages/StressHistory";
 import Login from "./pages/Login";
+import AISolution from "./pages/AISolution";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/session/:sessionId" element={<SessionDetail />} />
+          <Route path="/session/:sessionId/solution" element={<AISolution />} />
           <Route path="/stress-history" element={<StressHistory />} />
           {/* Hidden admin route: no link in UI intentionally */}
           <Route path="/login" element={<Login />} />

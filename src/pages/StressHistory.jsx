@@ -11,8 +11,10 @@ import {
   FileText,
   Edit3,
   X,
+  Sparkles,
 } from "lucide-react";
 import { authFetch, API_BASE_URL, getUser } from "../lib/api";
+import { hasAISolution } from "../lib/groqService";
 
 const HISTORY_ENDPOINT = `${API_BASE_URL}/api/stress-history`;
 
@@ -63,7 +65,7 @@ export default function StressHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [authUser] = useState(getUser());
-  
+
   // Modal state for updating session name
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -94,7 +96,7 @@ export default function StressHistory() {
           body: JSON.stringify({
             name: newSessionName.trim(),
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -107,8 +109,8 @@ export default function StressHistory() {
         prev.map((entry) =>
           entry.session_id === selectedSession
             ? { ...entry, session_name: newSessionName.trim() }
-            : entry
-        )
+            : entry,
+        ),
       );
 
       setShowUpdateModal(false);
@@ -145,9 +147,9 @@ export default function StressHistory() {
             .sort(
               (a, b) =>
                 new Date(b.timestamp || b.created_at) -
-                new Date(a.timestamp || a.created_at)
+                new Date(a.timestamp || a.created_at),
             );
-          
+
           // Fetch session names for entries with session_id
           const enrichedData = await Promise.all(
             sorted.map(async (entry) => {
@@ -159,9 +161,9 @@ export default function StressHistory() {
                       headers: {
                         "ngrok-skip-browser-warning": "true",
                       },
-                    }
+                    },
                   );
-                  
+
                   if (sessionResponse.ok) {
                     const sessionJson = await sessionResponse.json();
                     if (sessionJson?.success && sessionJson.data?.name) {
@@ -169,13 +171,16 @@ export default function StressHistory() {
                     }
                   }
                 } catch (err) {
-                  console.warn(`Failed to fetch session ${entry.session_id}:`, err);
+                  console.warn(
+                    `Failed to fetch session ${entry.session_id}:`,
+                    err,
+                  );
                 }
               }
               return entry;
-            })
+            }),
           );
-          
+
           setHistoryData(enrichedData);
         } else {
           setHistoryData([]);
@@ -294,7 +299,7 @@ export default function StressHistory() {
                             <Calendar className="w-4 h-4" />
                             <span>
                               {formatTimestampID(
-                                entry.timestamp || entry.created_at
+                                entry.timestamp || entry.created_at,
                               )}
                             </span>
                           </div>
@@ -310,7 +315,7 @@ export default function StressHistory() {
                                       onClick={() =>
                                         handleOpenUpdateModal(
                                           entry.session_id,
-                                          entry.session_name
+                                          entry.session_name,
                                         )
                                       }
                                       className="text-gray-400 hover:text-blue-600 transition-colors"
@@ -323,14 +328,15 @@ export default function StressHistory() {
                               ) : (
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs text-gray-400">
-                                    Session: {entry.session_id.substring(0, 8)}...
+                                    Session: {entry.session_id.substring(0, 8)}
+                                    ...
                                   </span>
                                   {authUser && (
                                     <button
                                       onClick={() =>
                                         handleOpenUpdateModal(
                                           entry.session_id,
-                                          ""
+                                          "",
                                         )
                                       }
                                       className="text-xs text-blue-500 hover:text-blue-700 hover:underline transition-colors flex items-center gap-1"
@@ -413,7 +419,7 @@ export default function StressHistory() {
                     {/* Action Button */}
                     {entry.session_id && (
                       <div className="flex justify-end">
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() =>
                               navigate(`/session/${entry.session_id}`)
@@ -424,29 +430,43 @@ export default function StressHistory() {
                             Lihat Detail Sesi
                           </button>
 
+                          {hasAISolution(entry.session_id) && (
+                            <button
+                              onClick={() =>
+                                navigate(
+                                  `/session/${entry.session_id}/solution`,
+                                )
+                              }
+                              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-lg transition-all font-medium shadow-md hover:shadow-lg"
+                            >
+                              <Sparkles className="w-4 h-4" />
+                              Lihat Solusi AI
+                            </button>
+                          )}
+
                           {localStorage.getItem("access_token") ? (
                             <button
                               onClick={async () => {
                                 const ok = window.confirm(
-                                  "Hapus record riwayat ini? Aksi ini dapat menghapus sesi terkait."
+                                  "Hapus record riwayat ini? Aksi ini dapat menghapus sesi terkait.",
                                 );
                                 if (!ok) return;
                                 try {
                                   const resp = await authFetch(
                                     `${API_BASE_URL}/api/stress-history/${entry.id}`,
-                                    { method: "DELETE" }
+                                    { method: "DELETE" },
                                   );
                                   if (!resp.ok) {
                                     const txt = await resp.text();
                                     throw new Error(txt || "Delete failed");
                                   }
                                   setHistoryData((prev) =>
-                                    prev.filter((p) => p.id !== entry.id)
+                                    prev.filter((p) => p.id !== entry.id),
                                   );
                                 } catch (err) {
                                   console.error("Delete error:", err);
                                   alert(
-                                    "Gagal menghapus: " + (err.message || err)
+                                    "Gagal menghapus: " + (err.message || err),
                                   );
                                 }
                               }}

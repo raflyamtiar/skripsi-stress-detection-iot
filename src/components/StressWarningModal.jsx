@@ -1,6 +1,11 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, MessageCircleHeart } from "lucide-react";
 
-export default function StressWarningModal({ isOpen, onClose, onListenMusic }) {
+export default function StressWarningModal({
+  isOpen,
+  onClose,
+  onListenMusic,
+  onConsult,
+}) {
   if (!isOpen) return null;
 
   return (
@@ -32,6 +37,13 @@ export default function StressWarningModal({ isOpen, onClose, onListenMusic }) {
               className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
             >
               Ya, Dengarkan Musik
+            </button>
+            <button
+              onClick={onConsult}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+            >
+              <MessageCircleHeart className="w-5 h-5" />
+              Konsultasikan
             </button>
             <button
               onClick={onClose}

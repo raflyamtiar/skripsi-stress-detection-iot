@@ -6,10 +6,13 @@ import SensorCard from "../components/SensorCard";
 import StressLevelCard from "../components/StressLevelCard";
 import RecordsTable from "../components/RecordsTable";
 import StressWarningModal from "../components/StressWarningModal";
+import ProblemSelectionModal from "../components/ProblemSelectionModal";
+import StoryModal from "../components/StoryModal";
 import MusicPlayer from "../components/MusicPlayer";
 import ConnectionStatusModal from "../components/ConnectionStatusModal";
 import LoadingModal from "../components/LoadingModal";
 import { getUser, setAccessToken, setUser } from "../lib/api";
+import { getAISolution, saveAISolution } from "../lib/groqService";
 
 const DEFAULT_API_BASE_URL =
   "https://premedical-caryl-gawkishly.ngrok-free.dev";
@@ -17,7 +20,7 @@ const DEFAULT_API_BASE_URL =
 const sanitizeBaseUrl = (url) => (url.endsWith("/") ? url.slice(0, -1) : url);
 
 const API_BASE_URL = sanitizeBaseUrl(
-  import.meta.env.VITE_STRESS_API_BASE || DEFAULT_API_BASE_URL
+  import.meta.env.VITE_STRESS_API_BASE || DEFAULT_API_BASE_URL,
 );
 
 const PREDICT_ENDPOINT =
@@ -74,6 +77,12 @@ export default function Dashboard() {
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [showLoadingModal, setShowLoadingModal] = useState(false);
 
+  // AI Consultation state
+  const [showProblemModal, setShowProblemModal] = useState(false);
+  const [showStoryModal, setShowStoryModal] = useState(false);
+  const [selectedProblems, setSelectedProblems] = useState([]);
+  const [isAILoading, setIsAILoading] = useState(false);
+
   // WebSocket state
   const [_sensorData, setSensorData] = useState([]);
   const [currentSensorData, setCurrentSensorData] = useState({
@@ -114,7 +123,7 @@ export default function Dashboard() {
           .sort(
             (a, b) =>
               new Date(b.timestamp || b.created_at) -
-              new Date(a.timestamp || a.created_at)
+              new Date(a.timestamp || a.created_at),
           )
           .map(normalizeHistoryRow);
         setHistoryRows(mapped);
@@ -188,7 +197,7 @@ export default function Dashboard() {
             if (!bulkResponse.ok) {
               console.error(
                 "Failed to submit bulk readings:",
-                await bulkResponse.text()
+                await bulkResponse.text(),
               );
             } else {
               console.log("✅ Bulk readings submitted successfully");
@@ -203,14 +212,14 @@ export default function Dashboard() {
       } catch (error) {
         console.error("Gagal mengirim hasil pengukuran:", error);
         setResultError(
-          "Gagal mengirim hasil ke server. Silakan mulai ulang pengukuran."
+          "Gagal mengirim hasil ke server. Silakan mulai ulang pengukuran.",
         );
       } finally {
         setIsSubmittingResult(false);
         setShowLoadingModal(false); // Sembunyikan loading modal
       }
     },
-    [fetchHistory]
+    [fetchHistory],
   );
 
   // Update ref setiap kali currentSensorData berubah
@@ -387,7 +396,7 @@ export default function Dashboard() {
 
           // Get existing data from localStorage
           const existingData = JSON.parse(
-            localStorage.getItem("measurementData") || "[]"
+            localStorage.getItem("measurementData") || "[]",
           );
           existingData.push(measurementEntry);
 
@@ -409,7 +418,7 @@ export default function Dashboard() {
             // Replace last10Seconds (bukan append)
             localStorage.setItem(
               "last10Seconds",
-              JSON.stringify(last10Formatted)
+              JSON.stringify(last10Formatted),
             );
           }
 
@@ -445,11 +454,11 @@ export default function Dashboard() {
                   gsr: parseFloat(avgEda.toFixed(3)),
                   timestamp,
                 },
-                last10Data
+                last10Data,
               );
             } else {
               setResultError(
-                "Data sensor tidak cukup untuk dikirim. Silakan ulangi pengukuran."
+                "Data sensor tidak cukup untuk dikirim. Silakan ulangi pengukuran.",
               );
               setPredictionResult(null);
             }
@@ -532,6 +541,61 @@ export default function Dashboard() {
     setShowMusicPlayer(false);
   };
 
+  // AI Consultation handlers
+  const handleConsult = () => {
+    setShowWarningModal(false);
+    setShowProblemModal(true);
+  };
+
+  const handleProblemBack = () => {
+    setShowProblemModal(false);
+    setShowWarningModal(true);
+  };
+
+  const handleProblemNext = (problems) => {
+    setSelectedProblems(problems);
+    setShowProblemModal(false);
+    setShowStoryModal(true);
+  };
+
+  const handleStoryBack = () => {
+    setShowStoryModal(false);
+    setShowProblemModal(true);
+  };
+
+  const handleStorySubmit = async (story) => {
+    setIsAILoading(true);
+
+    try {
+      // Request AI solution
+      const solution = await getAISolution(selectedProblems, story);
+
+      // Simpan ke localStorage
+      const sessionId = predictionResult?.sessionId;
+      if (!sessionId) {
+        throw new Error("Session ID tidak ditemukan");
+      }
+
+      saveAISolution(sessionId, {
+        problems: selectedProblems,
+        story,
+        solution,
+      });
+
+      // Redirect ke halaman solusi
+      navigate(`/session/${sessionId}/solution`);
+    } catch (error) {
+      console.error("Error getting AI solution:", error);
+      alert(
+        error.message ||
+          "Gagal mendapatkan solusi dari AI. Silakan coba lagi nanti.",
+      );
+      setIsAILoading(false);
+      setShowStoryModal(false);
+      setShowWarningModal(true);
+    }
+  };
+
   const handleStartClick = () => {
     if (!isConnected) {
       setShowConnectionModal(true);
@@ -570,7 +634,7 @@ export default function Dashboard() {
               🧘
             </span>
           </h1>
-          
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
             {/* Connection Status */}
             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200">
@@ -583,7 +647,7 @@ export default function Dashboard() {
                 {isConnected ? "Connected" : "Disconnected"}
               </span>
             </div>
-            
+
             {/* User Info & Logout */}
             {authUser ? (
               <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-lg shadow-sm border border-blue-200">
@@ -591,7 +655,9 @@ export default function Dashboard() {
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
                     {authUser.email?.[0]?.toUpperCase() || "A"}
                   </div>
-                  <div className="text-sm font-medium text-gray-700">{authUser.email}</div>
+                  <div className="text-sm font-medium text-gray-700">
+                    {authUser.email}
+                  </div>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -894,10 +960,10 @@ export default function Dashboard() {
                   {isSubmittingResult
                     ? "Mengirim hasil rata-rata ke server..."
                     : resultError
-                    ? resultError
-                    : predictionResult
-                    ? `Hasil terbaru: ${predictionResult.label}`
-                    : "Menunggu respons dari server..."}
+                      ? resultError
+                      : predictionResult
+                        ? `Hasil terbaru: ${predictionResult.label}`
+                        : "Menunggu respons dari server..."}
                 </div>
                 {predictionResult?.timestamp && (
                   <div className="text-sm text-gray-500 mb-4">
@@ -925,8 +991,8 @@ export default function Dashboard() {
                       (isSubmittingResult
                         ? "Mengirim data..."
                         : resultError
-                        ? "Tidak tersedia"
-                        : "Menunggu hasil")
+                          ? "Tidak tersedia"
+                          : "Menunggu hasil")
                     }
                     confidence={predictionResult?.confidence}
                   />
@@ -1036,6 +1102,21 @@ export default function Dashboard() {
         isOpen={showWarningModal}
         onClose={handleCloseModal}
         onListenMusic={handleListenMusic}
+        onConsult={handleConsult}
+      />
+
+      <ProblemSelectionModal
+        isOpen={showProblemModal}
+        onBack={handleProblemBack}
+        onNext={handleProblemNext}
+      />
+
+      <StoryModal
+        isOpen={showStoryModal}
+        onBack={handleStoryBack}
+        onSubmit={handleStorySubmit}
+        isLoading={isAILoading}
+        selectedProblems={selectedProblems}
       />
 
       <ConnectionStatusModal
