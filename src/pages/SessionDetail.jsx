@@ -37,10 +37,10 @@ export default function SessionDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [authUser] = useState(getUser());
-  
+
   // Session info
   const [sessionName, setSessionName] = useState("");
-  
+
   // Modal state for updating session name
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [newSessionName, setNewSessionName] = useState("");
@@ -69,7 +69,7 @@ export default function SessionDetail() {
           body: JSON.stringify({
             name: newSessionName.trim(),
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -101,7 +101,7 @@ export default function SessionDetail() {
             headers: {
               "ngrok-skip-browser-warning": "true",
             },
-          }
+          },
         );
 
         if (sessionResponse.ok) {
@@ -118,7 +118,7 @@ export default function SessionDetail() {
             headers: {
               "ngrok-skip-browser-warning": "true",
             },
-          }
+          },
         );
 
         if (!historyResponse.ok) {
@@ -137,7 +137,7 @@ export default function SessionDetail() {
             headers: {
               "ngrok-skip-browser-warning": "true",
             },
-          }
+          },
         );
 
         if (!readingsResponse.ok) {
@@ -221,7 +221,7 @@ export default function SessionDetail() {
           <h1 className="text-3xl font-bold text-gray-800">
             Detail Sesi Pengukuran
           </h1>
-          
+
           {sessionName ? (
             <div className="flex items-center gap-3 mt-2">
               <span className="text-lg font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg">
@@ -272,7 +272,7 @@ export default function SessionDetail() {
               <div className="space-y-4">
                 <div
                   className={`${getStressLevelColor(
-                    stressHistory.label
+                    stressHistory.label,
                   )} rounded-xl p-6 text-white`}
                 >
                   <div className="text-sm opacity-90 mb-1">Status Stress</div>
@@ -345,14 +345,6 @@ export default function SessionDetail() {
                 </div>
               </div>
             </div>
-
-            {/* Notes */}
-            {/* {stressHistory.notes && (
-              <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="font-semibold text-gray-700 mb-1">Catatan:</div>
-                <div className="text-gray-600">{stressHistory.notes}</div>
-              </div>
-            )} */}
           </motion.div>
         )}
 
@@ -426,13 +418,13 @@ export default function SessionDetail() {
                           <button
                             onClick={async () => {
                               const ok = window.confirm(
-                                "Hapus pembacaan sensor ini?"
+                                "Hapus pembacaan sensor ini?",
                               );
                               if (!ok) return;
                               try {
                                 const resp = await authFetch(
                                   `${API_BASE_URL}/api/sensor-readings/${reading.id}`,
-                                  { method: "DELETE" }
+                                  { method: "DELETE" },
                                 );
                                 if (!resp.ok) {
                                   const txt = await resp.text();
@@ -440,12 +432,12 @@ export default function SessionDetail() {
                                 }
                                 // remove from UI
                                 setSensorReadings((prev) =>
-                                  prev.filter((p) => p.id !== reading.id)
+                                  prev.filter((p) => p.id !== reading.id),
                                 );
                               } catch (err) {
                                 console.error("Delete error:", err);
                                 alert(
-                                  "Gagal menghapus: " + (err.message || err)
+                                  "Gagal menghapus: " + (err.message || err),
                                 );
                               }
                             }}
