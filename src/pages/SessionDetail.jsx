@@ -347,12 +347,12 @@ export default function SessionDetail() {
             </div>
 
             {/* Notes */}
-            {stressHistory.notes && (
+            {/* {stressHistory.notes && (
               <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="font-semibold text-gray-700 mb-1">Catatan:</div>
                 <div className="text-gray-600">{stressHistory.notes}</div>
               </div>
-            )}
+            )} */}
           </motion.div>
         )}
 
